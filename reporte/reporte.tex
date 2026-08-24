@@ -51,7 +51,7 @@
 \fancypagestyle{plain}{
 	% \lhead{\textbf{Mauricio Olguín Sánchez\\ A01711522}}
 	% \chead{\textbf{}}
-	\rhead{\textbf{Inteligencia artificial avanzada para la ciencia de datos}}
+	\rhead{\textbf{Inteligencia artificial avanzada \\ para la ciencia de datos}}
 	\renewcommand{\headrulewidth}{1pt}
 	%\renewcommand{\footrulewidth}{1pt}
 }
@@ -122,6 +122,7 @@ Esta base de datos está disponible en OpenML y está construida a partir de dat
 La base de datos seleccionada contiene 10,000,000 de registros y 10 variables, y corresponde a un problema de regresión. A continuación, presnto una breve descripción general del \textit{dataset}:
 \begin{description}
 	\item[Propósito:] Predecir el tiempo de retraso en la salida de los vuelos, medido en minutos (\textit{Departure Delay}).
+	\item[Fecha de los datos:] Desde 1987 hasta 2013.
 	\item[Formato:] ARFF (\textit{Attribute-Relation File Format}).
 	\item[Tipo de tarea:] Regresión.
 	\item[Número de registros:] 10,000,000.
@@ -148,6 +149,36 @@ Aunque OpenML proporciona información sobre cada variable, dentro de la fuente 
 
 Como ya lo he mencionado antes, los datos se han obtenido del siguiente link: \url{https://www.openml.org/search?type=data&status=active&id=42728}
 \newline
+Sin embargo, si se quiciera obtener más datos actuales, habría que descargarlos (sea de forma manual o crearndo algún \textit{script}) desde el siguiente link: \url{https://transtats.bts.gov/PREZIP/}. Aquí, se recopilan todos los datos desde 1987 hasta junio de 2026.
+
+\subsection{\textit{Transforming}}
+
+Las variables \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek}, aunque se encuentran representadas numéricamente en el conjunto de datos, las trataré como variables categóricas. Esto se debe a que, en realidad, los valores numéricos representan categorías y no implican necesariamente una relación lineal entre ellas. Por ejemplo, el mes representado por el valor 12 no debe interpretarse como una categoría doce veces mayor que el mes representado por el valor 1.
+
+Para representar estas variables dentro del modelo de regresión, utilizaré la técnica de \textit{One-Hot Encoding}. Aunque esto implicará que creesca la dimensionalidad del conjunto de datos.
+
+En contraste, las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} son explícitamente categóricas, pero serán excluidas del modelo. Su transformación (utilizando la misma técnica) produciría un incremento considerablemente mayor en la cantidad de variables. Princpialmente, tomo esta decisión con el objetivo de mantener un tiempo de ejecución razonable y centrar el proyecto en la implementación manual del algoritmo de regresión.
+
+\subsubsection{Sobre las columnas \textit{CRSDepTime} y \textit{CRSArrTime}}
+
+Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas programadas de salida y llegada de los vuelos. En el conjunto de datos, estas se representan en el formato HHMM, es decir, que si la hora era 13:20, en los datos se muestran 1320.
+\newline
+Sin embargo, esta representación no resulta adecuada al momento de utilizarla directamente como valores numéricos porque, dentro del modelo de regresión, no será representado la distancia real. Por ejemplo, los valores de 2355 y 5, aunque estan apartados por 10 minutos, utilizando los datos tal cual como vienen en el conjunto de datos, estos estarían muy separados entre sí.
+\newline
+Es por esto que ambas variables tienen que ser tranformadas y, la mejor conversión que he podido investigar es utilizar como referencia la medianoche.
+
+Por esta razón, ambas variables fueron transformadas a minutos
+transcurridos desde la medianoche. Para realizar esta conversión, se
+separó la hora y los minutos del valor original y se aplicó la siguiente
+expresión:
+
+\begin{equation*}
+	\text{Minutos desde medianoche} = 60 \times \text{Hora} + \text{Minutos}
+\end{equation*}
+
+De esta forma, conservamos la información temporal original y proporcionamos una representación numérica más adecuada para el modelo de regresión.
+
+\subsection{\textit{Loading}}
 
 
 \end{document}
