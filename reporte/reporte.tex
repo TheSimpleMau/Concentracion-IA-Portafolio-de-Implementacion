@@ -1,0 +1,153 @@
+\documentclass[a4paper,12pt,twocolumn]{article}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{tikz}
+\usepackage{circuitikz}
+\usetikzlibrary{calc}
+\usepackage{anyfontsize}
+\usepackage{sectsty}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+%\usepackage[scaled]{uarial}
+%\renewcommand*\familydefault{\sfdefault}
+\usepackage[left=2.54cm,right=2.54cm,top=2.54cm,bottom=2.54cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{mathtools}
+\usepackage{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{multicol}
+\usepackage{caption}
+\usepackage[export]{adjustbox}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{url}
+\usepackage{listings}
+\usepackage{enumitem}
+\usepackage{gensymb}
+\newcounter{descriptcount}
+\renewcommand*\thedescriptcount{\arabic{descriptcount}.-}
+\usepackage{setspace}
+\usepackage{hyperref}
+
+\hypersetup{
+	colorlinks=true,
+	linkcolor=AirForceBlue,
+	filecolor=green,
+	citecolor = blue,
+	urlcolor=blue,
+}
+
+\definecolor{skyblue}{RGB}{122,177,226}
+\definecolor{daphne}{RGB}{51,118,185}
+\definecolor{AirForceBlue}{RGB}{21,58,89}
+\definecolor{midnight}{RGB}{18,34,62}
+\setlength{\parindent}{0pt}
+
+\fancypagestyle{plain}{
+	% \lhead{\textbf{Mauricio Olguín Sánchez\\ A01711522}}
+	% \chead{\textbf{}}
+	\rhead{\textbf{Inteligencia artificial avanzada para la ciencia de datos}}
+	\renewcommand{\headrulewidth}{1pt}
+	%\renewcommand{\footrulewidth}{1pt}
+}
+
+
+\lstdefinestyle{pythonish}{
+	basicstyle=\ttfamily\small,
+	language=python,
+	numberstyle=\tiny\color{gray},
+	numbers=left,
+	stepnumber=1,
+	numbersep=10pt,
+	tabsize=4,
+	showspaces=false,
+	showstringspaces=false,
+	breaklines=true,
+	frame=single,
+	rulecolor=\color{black},
+	showtabs=false,
+	captionpos=b,
+	keywordstyle=\color{blue},
+	commentstyle=\color[rgb]{0.133,0.545,0.133},
+	backgroundcolor=\color[rgb]{0.964,0.964,0.964},
+	stringstyle=\color{red},
+	literate=
+	{á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+	{Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+	{à}{{\`a}}1 {è}{{\`e}}1 {ì}{{\`i}}1 {ò}{{\`o}}1 {ù}{{\`u}}1
+	{À}{{\`A}}1 {È}{{\'E}}1 {Ì}{{\`I}}1 {Ò}{{\`O}}1 {Ù}{{\`U}}1
+	{ä}{{\"a}}1 {ë}{{\"e}}1 {ï}{{\"i}}1 {ö}{{\"o}}1 {ü}{{\"u}}1
+	{Ä}{{\"A}}1 {Ë}{{\"E}}1 {Ï}{{\"I}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+	{â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
+	{Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1
+	{œ}{{\oe}}1 {Œ}{{\OE}}1 {æ}{{\ae}}1 {Æ}{{\AE}}1 {ß}{{\ss}}1
+	{ű}{{\H{u}}}1 {Ű}{{\H{U}}}1 {ő}{{\H{o}}}1 {Ő}{{\H{O}}}1
+	{ç}{{\c c}}1 {Ç}{{\c C}}1 {ø}{{\o}}1 {å}{{\r a}}1 {Å}{{\r A}}1
+	{€}{{\EUR}}1 {£}{{\pounds}}1 {Ñ}{{\~N}}1 {ñ}{{\~n}}1 {°}{{$^\circ$}}1
+	{¿}{{¿}}1
+}
+
+\renewcommand{\labelitemi}{$\bullet$}
+
+\newcommand*\circled[1]{\tikz[baseline=(char.base)]{
+		\node[shape=circle,draw,inner sep=2pt] (char) {#1};}}
+
+
+\pagenumbering{gobble}
+
+\renewcommand{\arraystretch}{1.1}
+
+\title{Reporte de implementación.}
+\author{Mauricio Olguín Sánchez - A01711522}
+
+\begin{document}
+
+\pagestyle{plain}
+
+\maketitle
+
+\tableofcontents
+
+\section{Sobre la base de datos seleccionada}
+
+Después de haber investigado en páginas como \href{https://archive.ics.uci.edu/}{UC Irvine}, \href{https://kaggle.com/}{Kaggle}, el \href{https://data.worldbank.org/}{World Banck Open Data}, entre otros, encontré en la página de \href{https://www.openml.org/}{OpenML} un \textit{dataset} interesante. Tras aplicar varios filtros, encontre la base de datos \href{https://www.openml.org/search?type=data&status=active&id=42728}{Airlines\_DepDelay\_10M}.
+\newline
+Esta base de datos está disponible en OpenML y está construida a partir de datos provenientes de la Oficina de Estadísticas de Transporte de los Estados Unidos (\textit{Bureau of Transportation Statistics}, BTS), específicamente de la base de datos \textit{Airline On-Time Performance Data}.
+\newline
+La base de datos seleccionada contiene 10,000,000 de registros y 10 variables, y corresponde a un problema de regresión. A continuación, presnto una breve descripción general del \textit{dataset}:
+\begin{description}
+	\item[Propósito:] Predecir el tiempo de retraso en la salida de los vuelos, medido en minutos (\textit{Departure Delay}).
+	\item[Formato:] ARFF (\textit{Attribute-Relation File Format}).
+	\item[Tipo de tarea:] Regresión.
+	\item[Número de registros:] 10,000,000.
+    \item[Número de variables:] 10.
+\end{description}
+
+Aunque OpenML proporciona información sobre cada variable, dentro de la fuente original (en el \textit{\href{https://www.transtats.bts.gov/DL_SelectFields.aspx?gnoyr_VQ=FGJ&QO_fu146_anzr=b0-gvzr}{Bureau of Transportation Statistics}}), existe una descripción más detallada sobre los datos:
+\begin{description}
+    \item[DepDelay - numerico.] Diferencia, en minutos, entre la hora de salida programada y la hora de salida real del vuelo. Los valores negativos indican que el vuelo salió antes de lo programado.
+    \item[Month - numerico.] Mes en el que se realizó el vuelo, con valores del 1 al 12, donde 1 corresponde a enero y 12 a diciembre.
+    \item[DayofMonth - numerico.] Día del mes en el que se realizó el vuelo, con valores del 1 al 31.
+    \item[DayOfWeek - numerico.] Día de la semana en el que se realizó el vuelo, representado mediante valores del 1 al 7.
+    \item[CRSDepTime - numerico.] Hora de salida programada del vuelo según el sistema de reservas computarizado de la aerolínea (CRS), expresada en hora local con formato HHMM.
+    \item[CRSArrTime - numerico.] Hora de llegada programada del vuelo según el sistema de reservas computarizado de la aerolínea (CRS), expresada en hora local con formato HHMM.
+    \item[UniqueCarrier - categorico.] Código único utilizado para identificar a la aerolínea que opera el vuelo.
+    \item[Origin - categorico.] Código del aeropuerto de origen del vuelo.
+    \item[Dest - categorico.] Código del aeropuerto de destino del vuelo.
+    \item[Distance - numerico.] Distancia total del vuelo, expresada en millas.
+\end{description}
+
+\section{Proceso de ETL}
+
+\subsection{\textit{Extraction}}
+
+Como ya lo he mencionado antes, los datos se han obtenido del siguiente link: \url{https://www.openml.org/search?type=data&status=active&id=42728}
+\newline
+
+
+\end{document}
