@@ -141,3 +141,36 @@ def mean_delay_by_hour(df: pd.DataFrame):
     plt.grid()
     plt.savefig("mean_depdelay_by_hour.png", dpi=DPI)
     plt.close()
+
+# Implementación tomada de https://www.geeksforgeeks.org/python/pairplot-in-matplotlib/ y ajustada a mi caso
+def pair_plot(df: pd.DataFrame):
+    # Number of features
+    num_features = len(df.columns)
+    # Create Subplots Grid
+    fig, axes = plt.subplots(num_features, num_features, figsize=(10, 10))
+    # Loop through each pair of features
+    for i in range(num_features):
+        for j in range(num_features):
+            ax = axes[i, j]
+            
+            if i == j:
+                # Diagonal: Histogram of the feature
+                ax.hist(df.iloc[:, i], bins=15, color='skyblue', edgecolor='black')
+            else:
+                # Scatter plot for feature pairs
+                ax.scatter(df.iloc[:, j], df.iloc[:, i], alpha=0.7, s=10, color="blue")
+
+            # Set labels on the left and bottom axes
+            if j == 0:
+                ax.set_ylabel(df.columns[i], fontsize=10)
+            if i == num_features - 1:
+                ax.set_xlabel(df.columns[j], fontsize=10)
+
+            # Remove ticks for a cleaner look
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+    # Adjust layout
+    plt.tight_layout()
+    plt.title("Pair plot")
+    plt.savefig("pair_plot.png", dpi=DPI)

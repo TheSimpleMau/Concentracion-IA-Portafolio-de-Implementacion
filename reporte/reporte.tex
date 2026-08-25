@@ -1,4 +1,4 @@
-\documentclass[a4paper,12pt,twocolumn]{article}
+\documentclass[a4paper,12pt,twocolumn]{report}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{tikz}
 \usepackage{circuitikz}
@@ -73,9 +73,9 @@
 	showtabs=false,
 	captionpos=b,
 	keywordstyle=\color{blue},
-	commentstyle=\color[rgb]{0.133,0.545,0.133},
+	commentstyle=\color[HTML]{8a8b91},
 	backgroundcolor=\color[rgb]{0.964,0.964,0.964},
-	stringstyle=\color{red},
+	stringstyle=\color[rgb]{0.133,0.545,0.133},
 	literate=
 	{á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
 	{Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
@@ -89,7 +89,7 @@
 	{ű}{{\H{u}}}1 {Ű}{{\H{U}}}1 {ő}{{\H{o}}}1 {Ő}{{\H{O}}}1
 	{ç}{{\c c}}1 {Ç}{{\c C}}1 {ø}{{\o}}1 {å}{{\r a}}1 {Å}{{\r A}}1
 	{€}{{\EUR}}1 {£}{{\pounds}}1 {Ñ}{{\~N}}1 {ñ}{{\~n}}1 {°}{{$^\circ$}}1
-	{¿}{{¿}}1
+	{¿}{{\textquestiondown}}1 {?}{{?}}1
 }
 
 \renewcommand{\labelitemi}{$\bullet$}
@@ -112,6 +112,8 @@
 \maketitle
 
 \tableofcontents
+
+\chapter{Realizando la implementación «A manita»}
 
 \section{Sobre la base de datos seleccionada}
 
@@ -159,7 +161,7 @@ Para representar estas variables dentro del modelo de regresión, utilizaré la 
 
 En contraste, las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} son explícitamente categóricas, pero serán excluidas del modelo. Su transformación (utilizando la misma técnica) produciría un incremento considerablemente mayor en la cantidad de variables. Princpialmente, tomo esta decisión con el objetivo de mantener un tiempo de ejecución razonable y centrar el proyecto en la implementación manual del algoritmo de regresión.
 
-\subsubsection{Sobre las columnas \textit{CRSDepTime} y \textit{CRSArrTime}}
+\subsubsection{Sobre los atributos \textit{CRSDepTime} y \textit{CRSArrTime}}
 
 Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas programadas de salida y llegada de los vuelos. En el conjunto de datos, estas se representan en el formato HHMM, es decir, que si la hora era 13:20, en los datos se muestran 1320.
 \newline
@@ -179,6 +181,20 @@ expresión:
 De esta forma, conservamos la información temporal original y proporcionamos una representación numérica más adecuada para el modelo de regresión.
 
 \subsection{\textit{Loading}}
+
+Una vez hechas las transformaciones anteriores, ahora dividiré el tamaño de mi \textit{dataset} en tres principales secciones: \textit{train}, \textit{validation} y \textit{test}. Al ser la cantidad de datos tan alta, podría realizar varias particiones para \textit{validation}, sin embargo, en esta primera parte en donde me enfoco más
+
+\onecolumn
+\chapter{Anexo}
+
+\section{Códigos}
+
+El siguiente código sirve únicamente para la generación de los gráficos presentados, aunque no todos fueron utilizados.
+\lstinputlisting[style=pythonish]{../plotUtil.py}
+
+Código principal.
+\lstinputlisting[style=pythonish]{../main.py}
+
 
 
 \end{document}
