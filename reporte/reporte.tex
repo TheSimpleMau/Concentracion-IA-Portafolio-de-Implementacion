@@ -33,6 +33,9 @@
 \renewcommand*\thedescriptcount{\arabic{descriptcount}.-}
 \usepackage{setspace}
 \usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage[backend=biber, style=numeric]{biblatex}
+\addbibresource{referencias.bib}
 
 \hypersetup{
 	colorlinks=true,
@@ -167,34 +170,101 @@ Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas pr
 \newline
 Sin embargo, esta representación no resulta adecuada al momento de utilizarla directamente como valores numéricos porque, dentro del modelo de regresión, no será representado la distancia real. Por ejemplo, los valores de 2355 y 5, aunque estan apartados por 10 minutos, utilizando los datos tal cual como vienen en el conjunto de datos, estos estarían muy separados entre sí.
 \newline
-Es por esto que ambas variables tienen que ser tranformadas y, la mejor conversión que he podido investigar es utilizar como referencia la medianoche.
-
-Por esta razón, ambas variables fueron transformadas a minutos
-transcurridos desde la medianoche. Para realizar esta conversión, se
-separó la hora y los minutos del valor original y se aplicó la siguiente
-expresión:
+Es por esto que ambas variables tienen que ser tranformadas y, la mejor conversión que he podido investigar es utilizar como referencia la medianoche. Para realizar esta conversión, se separó la hora y los minutos del valor original y se aplicó la siguiente expresión:
 
 \begin{equation*}
-	\text{Minutos desde medianoche} = 60 \times \text{Hora} + \text{Minutos}
+	\text{Minutos}_{\text{desde la media noche}} = 60 \times \text{Hora} + \text{Minutos}
 \end{equation*}
 
 De esta forma, conservamos la información temporal original y proporcionamos una representación numérica más adecuada para el modelo de regresión.
 
+\subsubsection{Sobre el formato del archivo de los datos}
+
+Al empezar a realizar una exploración de los datos, cada que tenía que ejecutar el programa para visualizarlos, tardaba un aproximado de 45 segundos cada que ejecutaba el programa. Investigando opciones para solucionar este problema, me encontré con el formato \lstinline|parquet|. Este formato esta precesiamente optimizado para mejorar el manejo de datos complejos, el rendimiento de las consultas que se hacen y la eficiencia del almacenamiento~\cite{ibmQuApache}.
+\newline
+Esta integración, al ver que me resultaería óptima para poder realizar más prubeas más rapidas, la he implementado. Así pues, el archivo ha pasado de tener un peso de 385 MB a sólo 56 MB; además de que el timepo de carga se redujo drásticamente de 45 segundos a 2 segundos o menos.
+
 \subsection{\textit{Loading}}
 
-Una vez hechas las transformaciones anteriores, ahora dividiré el tamaño de mi \textit{dataset} en tres principales secciones: \textit{train}, \textit{validation} y \textit{test}. Al ser la cantidad de datos tan alta, podría realizar varias particiones para \textit{validation}, sin embargo, en esta primera parte en donde me enfoco más
+Una vez hechas las transformaciones anteriores, ahora dividiré el tamaño de mi \textit{dataset} en tres principales secciones: \textit{train}, \textit{validation} y \textit{test}. Al ser la cantidad de datos tan alta, podría realizar varias particiones para \textit{validation}, sin embargo, en esta primera parte en donde me enfoco aprender el algoritmo, sólo haré una ves esta división. Así pues, utilizaré una proporcion de 98\% de los datos para \textit{train}, 1\% para \textit{validation} y 1\% para \textit{test}.~\cite{ml4devsTrainingValidation}
+
+\section{\textit{Exploratoy Data Analysis}}
+
+Hice un primer acercamiento general a los datos simplemente realizando un gráfico de pares (\textit{pairplot}), el cuál resultó en el siguiente: (ver figura \ref{fig:pairplot})
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/pair_plot_jupyter.png}
+	\caption{\textit{Pair plot} para visualizar la mayoría de los datos comparados entre sí. No se graficaron todos los 10 millones de puntos por el tiempo de computo requerido, además de que tampoco es la intención de este gráfico. Se añadió también que, para cada punto, se etiquetara por su el día de la semana (\textit{DayOfWeek}) para intentar de visualizar algún \textit{cluster} o algúna zona de interes.}
+	\label{fig:pairplot}
+\end{figure}
+
+Como era de esperarse, al tener datos que correpsonden a periodos de tiempo, realmente no podemos ver una tendencia o información relevante de estos. Sin embargo, vale la pena destacar las comparaciones cuando los datos no se están comparando entre dos periodos de tiempo (con excepción de \textit{CRSDepTime} vs \textit{CRSArrTime}). También, no podemos observar alguna zona en donde los datos se acumulen por algún periodo de tiempo.
+
+Aunque antes he hecho el proceso de hacer un \textit{One Hot Enocding} para las variables categóricas, sirve también visualizar de forma directa estos datos tal cual dentro de estas gráficas para darme una idea general de los datos.
+\newline
+Luego, teniendo en cuenta que cuento con los datos de los días de la semana, días del mes, meses del año y las horas en las que se retrasan, decidí hacer un gráfico con los minutos promedio por cada serie de tiempo para ver cómo es que evolucionan los retrasos durante cada periodo de tiempo.
+
+\begin{figure}[h!]
+	\centering
+	\begin{subfigure}{\linewidth}
+		\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_hour.png}
+		\caption{Promedios de retrasos por cada hora.}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{\linewidth}
+		\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_weekly.png}
+		\caption{Promedios de retrasos por cada día de la semana.}
+	\end{subfigure}
+	\hfill
+	\begin{subfigure}{\linewidth}
+		\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_month.png}
+		\caption{Promedios de retrasos por cada mes.}
+	\end{subfigure}
+	\caption{Promedios de retrasos por periodos de tiempos.}
+\end{figure}
+
+
 
 \onecolumn
 \chapter{Anexo}
 
+\section{Figuras amplias}
+
+A continuación, se vuelven a dejar todas las figuras que contienen gráficos en un mayor tamaño poder visualizarlos mejor.
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/pair_plot_jupyter.png}
+\end{figure}
+
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_hour.png}
+\end{figure}
+\hfill
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_weekly.png}
+\end{figure}
+\hfill
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_month.png}
+\end{figure}
+
+
+\newpage
 \section{Códigos}
 
 El siguiente código sirve únicamente para la generación de los gráficos presentados, aunque no todos fueron utilizados.
-\lstinputlisting[style=pythonish]{../plotUtil.py}
+% \lstinputlisting[style=pythonish]{../plotUtil.py}
 
 Código principal.
-\lstinputlisting[style=pythonish]{../main.py}
+% \lstinputlisting[style=pythonish]{../main.py}
 
 
+\printbibliography[heading=bibintoc, title={Bibliografía}]
 
 \end{document}
