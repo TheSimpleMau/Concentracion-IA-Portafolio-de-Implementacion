@@ -5,45 +5,24 @@ from plotUtil import *
 from etlProcess import *
 from regresionModel import train, predict, cost, r_squared
 
-def plot_graphs(df:pd.DataFrame):
-    # delays_hist(df)
-    # delays_vs_distance(df)
-    # delays_vs_deptime(df)
-    # delays_by_month(df)
-    # delays_by_week(df)
-    # mean_delay_by_hour(df)
-    # mean_delay_by_month(df)
+def initial_graphs(df:pd.DataFrame):
+    # pair_plot(df) # Por el timepo de computo, preferible sólo realizarlo una única vez.
+    mean_delay_by_hour(df)
+    mean_delay_by_month(df)
+    mean_delay_by_week(df)
     correlation_matrix(df)
-    # mean_delay_by_week(df)
-    # pair_plot(df)
-    # depArr_plot(df)
-    # heatmap_day_vs_hour(df)
-    # mean_median_delay_by_hour(df)
-    # heatmap_hour_day(df)
-    # delay_vs_distance_hexbin(df)
-    # flight_distribution_by_hour(df)
-    # flight_distribution_by_weekday(df)
-    # flight_distribution_by_month(df)
-    # delay_distribution_by_hour(df)
-    # delay_distribution_by_weekday(df)
-    # delay_distribution_by_month(df)
-    # delay_boxplot_by_month(df)
-    # delay_boxplot_by_weekday(df)
 
 def etl_process():
     # ETL
     ## Extracting
-    
     df, _skip = extract_data()
     if not _skip:
         ## Transform
         df = transform_data(df)
-    
     # Loading
     # Como tal, no se subirán los datos a algun repositorio u otro lugar, sin embargo
     # sirve realizar en esta sección la separación de los datos.
     df, Xtrain, Xvalidation, Xtest, ytrain, yvalidation, ytest = split_data(df)
-
     print("Datos separados en train (98%), validation (1%) y test (1%)")
     print("Normalizando las columnas CRSDepTime, CRSArrTime y Distance...")
     Xtrain_norm, Xvalidation_norm, Xtest_norm = normalize_data(Xtrain, Xvalidation, Xtest)
@@ -55,6 +34,12 @@ def main():
     # ETL
     df, Xtrain_norm, Xvalidation_norm, Xtest_norm, ytrain, yvalidation, ytest = etl_process()
 
+    _plot_graps = True # cambiar a True en caso de querer graficar
+
+    if _plot_graps:
+        print("Graficando parte análisis...")
+        initial_graphs(df)
+        print("Finalizando graficas iniciales.")
 
     # Datos a utilizar.
     # Nota: Esto sólo es para realizar pruebas rápidas por el tamaño del dataset.

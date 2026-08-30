@@ -46,21 +46,9 @@ def transform_data(df:pd.DataFrame):
     print("Nota: No existen valores nulos :D")
 
     print("Aplicando One Hot Encoding para columnas DayOfWeek, DayofMonth y Month...")
-    df = pd.get_dummies(df, columns=["DayOfWeek", "DayofMonth", "Month"], dtype=int)
+    dummies = pd.get_dummies(df[["DayOfWeek", "DayofMonth", "Month"]],columns=["DayOfWeek", "DayofMonth", "Month"],dtype=int)
+    df = pd.concat([df, dummies], axis=1)
     print("One Hot Encoding aplicado.")
-
-    # Estrategia no implementada
-    # print("Aplicando ciclicidad en los tiempos de llegada/salida...")
-    # df["CRSArrTime_sin"] = np.sin((2*np.pi * df["CRSArrTime"])/1440)
-    # df["CRSArrTime_cos"] = np.cos((2*np.pi * df["CRSArrTime"])/1440)
-    # df["CRSDepTime_sin"] = np.sin((2*np.pi * df["CRSDepTime"])/1440)
-    # df["CRSDepTime_cos"] = np.cos((2*np.pi * df["CRSDepTime"])/1440)
-
-    # df = df.drop(columns=["CRSArrTime", "CRSDepTime"])
-    # print("Cliclicidad hecha.")
-
-    # print("Estdo final del dataset.")
-    # print(df)
 
 
     print("Guardando datos en formato parquet para tener una carga más rápida en futuras pruebas...")
@@ -72,7 +60,7 @@ def transform_data(df:pd.DataFrame):
 def split_data(df:pd.DataFrame):
     df = df.sample(frac=1).reset_index(drop=True)
     Yvalues = df["DepDelay"]
-    Xvalues = df.drop(columns=["DepDelay"])
+    Xvalues = df.drop(columns=["DepDelay", "DayOfWeek", "DayofMonth", "Month"])
     df_len = len(df)
     # Al ser un gran tamaño de datos, dividiré los datos 98/1/1
     Xtrain = Xvalues[0:(df_len*98)//100]
