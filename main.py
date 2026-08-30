@@ -1,10 +1,9 @@
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 from plotUtil import *
 from etlProcess import *
-from regresionModel import train, predict, cost
+from regresionModel import train, predict, cost, r_squared
 
 def plot_graphs(df:pd.DataFrame):
     # delays_hist(df)
@@ -84,9 +83,9 @@ def main():
     print("Número de observaciones de test:", len(test_params))
 
     # Parámetros del modelo
-    lr = 0.001
-    epochs = 200
-    batch_size = 1024
+    lr = 0.01
+    epochs = 10
+    batch_size = 2048
 
     # Entrenamiento
     weights, bias, train_costs, validation_costs = train(params, y, validation_params, validation_y, lr, epochs, batch_size)
@@ -110,22 +109,50 @@ def main():
     test_predictions = predict(test_params, weights, bias)
     test_cost = cost(test_predictions, test_y)
 
-    print("\nCosto de test:")
-    print(test_cost)
+    # R^2 para cada conjunto
+    train_predictions_final = predict(params, weights, bias)
+    validation_predictions_final = predict(validation_params, weights, bias)
+
+    train_r2 = r_squared(train_predictions_final, y)
+    validation_r2 = r_squared(validation_predictions_final, validation_y)
+    test_r2 = r_squared(test_predictions, test_y)
+
+    print("\nR^2:")
+    print("Train:", train_r2)
+    print("Validation:", validation_r2)
+    print("Test:", test_r2)
+
+    print(f"{'Real':>10} {'Predicho':>10} {'Error':>10}")
+    for i in range(15):
+        real = test_y[i]
+        pred = test_predictions[i]
+        print(f"{real:>10.2f} {pred:>10.2f} {pred - real:>10.2f}")
+
+    # Gráfica de predicción vs. real
+    predicted_vs_actual(test_y, test_predictions, test_r2, dataset_name="Test")
 
 
     # Gráfica de training y validation
     plt.figure(figsize=(10, 6))
     plt.plot(range(1, len(train_costs) + 1), train_costs, label="Training")
     plt.plot(range(1, len(validation_costs) + 1), validation_costs, label="Validation")
-    plt.axhline(y=test_cost, linestyle="--", label="Test final")
     plt.xlabel("Época")
     plt.ylabel("MSE")
     plt.title("Evolución del error durante el entrenamiento")
+    r2_text = (f"$R^2$ train: {train_r2:.4f}\n" f"$R^2$ validation: {validation_r2:.4f}\n" f"$R^2$ test: {test_r2:.4f}")
+    plt.gca().text(
+        0.98, 0.95, r2_text,
+        transform=plt.gca().transAxes,
+        ha="right", va="top",
+        fontsize=10,
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8)
+    )
     plt.legend()
     plt.grid()
     plt.tight_layout()
-    plt.savefig("cost_evolution.png", dpi=DPI)
+    plt.savefig("./graficas/cost_evolution.png", dpi=DPI)
+
+
 
 
 if __name__ == '__main__':

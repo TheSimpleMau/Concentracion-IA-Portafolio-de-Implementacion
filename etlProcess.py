@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 from scipy.io import arff # Para leer el tipo de archivo en el que viene el dataset
 
 def hhmm_to_minutes(time):
@@ -14,7 +15,7 @@ def extract_data():
     if "airlines_10M.parquet" not in os.listdir():
         arff_file = arff.loadarff('./airlines_train_regression_10000000.arff')
         df = pd.DataFrame(arff_file[0])
-        print("\nDatos generales:")
+        print("\nEstado final del dataset:")
         print(df.info())
         return df, False
     else:
@@ -48,6 +49,20 @@ def transform_data(df:pd.DataFrame):
     df = pd.get_dummies(df, columns=["DayOfWeek", "DayofMonth", "Month"], dtype=int)
     print("One Hot Encoding aplicado.")
 
+    # Estrategia no implementada
+    # print("Aplicando ciclicidad en los tiempos de llegada/salida...")
+    # df["CRSArrTime_sin"] = np.sin((2*np.pi * df["CRSArrTime"])/1440)
+    # df["CRSArrTime_cos"] = np.cos((2*np.pi * df["CRSArrTime"])/1440)
+    # df["CRSDepTime_sin"] = np.sin((2*np.pi * df["CRSDepTime"])/1440)
+    # df["CRSDepTime_cos"] = np.cos((2*np.pi * df["CRSDepTime"])/1440)
+
+    # df = df.drop(columns=["CRSArrTime", "CRSDepTime"])
+    # print("Cliclicidad hecha.")
+
+    # print("Estdo final del dataset.")
+    # print(df)
+
+
     print("Guardando datos en formato parquet para tener una carga más rápida en futuras pruebas...")
     df.to_parquet("airlines_10M.parquet", engine="pyarrow")
     print("Datos en parquet guardados.")
@@ -55,17 +70,14 @@ def transform_data(df:pd.DataFrame):
     return df
 
 def split_data(df:pd.DataFrame):
-    df = df.sample(frac=1)
-    Xvalues = df.iloc[::, 1::] # Sabemos que después de la primera columna, todas las demás son las variables predictorias.
-    Yvalues = df.iloc[::, 0] # Sabesmos que la primera columna es DepDelay.
+    df = df.sample(frac=1).reset_index(drop=True)
+    Yvalues = df["DepDelay"]
+    Xvalues = df.drop(columns=["DepDelay"])
     df_len = len(df)
     # Al ser un gran tamaño de datos, dividiré los datos 98/1/1
     Xtrain = Xvalues[0:(df_len*98)//100]
     Xvalidation = Xvalues[(df_len*98)//100:(df_len*99)//100]
     Xtest = Xvalues[(df_len*99)//100::]
-    Xtrain = Xtrain.drop(columns=["Month", "DayofMonth", "DayOfWeek"])
-    Xvalidation = Xvalidation.drop(columns=["Month", "DayofMonth", "DayOfWeek"])
-    Xtest = Xtest.drop(columns=["Month", "DayofMonth", "DayOfWeek"])
     ytrain = Yvalues[0:(df_len*98)//100]
     yvalidation = Yvalues[(df_len*98)//100:(df_len*99)//100]
     ytest = Yvalues[(df_len*99)//100::]

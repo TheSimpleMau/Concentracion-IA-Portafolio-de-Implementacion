@@ -19,6 +19,16 @@ def cost(y_hat:list, y:list)->float:
     result = 1/len(y) * result
     return result
 
+def r_squared(y_pred: list, y_real: list) -> float:
+    n = len(y_real)
+    mean_y = sum(y_real) / n
+    ss_res = 0.0
+    ss_tot = 0.0
+    for i in range(n):
+        ss_res += (y_real[i] - y_pred[i]) ** 2
+        ss_tot += (y_real[i] - mean_y) ** 2
+    return 1 - (ss_res / ss_tot)
+
 def gradient(weights: list, bias: float, params: list, y: list):
     gradients = [0] * len(weights)
     bias_gradient = 0
@@ -63,34 +73,39 @@ def train_step(weights:list, bias:float, params:list, y:list, lr:float):
     new_weights, new_bias = update(weights, bias, gradients, bias_gradient, lr)
     return new_weights, new_bias, current_cost
 
-def train(params:list, y:list, validation_params:list, validation_y:list, lr:float, epochs:int, batch_size:int=256):
-    weights = [0 for _ in range(len(params[0]))]
+def train(params:list, y:list, validation_params:list, validation_y:list, lr:float, epochs:int, batch_size:int):
     # weights = [random.random() for _ in range(len(params[0]))]
+    weights = [0 for _ in range(len(params[0]))]
     bias = 0
     train_costs = []
     validation_costs = []
     
     m = len(params)
     num_batches = math.ceil(m / batch_size)
+
+    total_steps = epochs*num_batches
+    pbar = tqdm(total=total_steps, desc="Entrenando modelo")
     
-    for _ in tqdm(range(epochs), desc="Entrenando modelo"):
-        epoch_train_cost = 0
-        
+    for epoch in range(epochs):
+        epoch_train_cost = 0    
         # Iteramos sobre los datos en pequeños lotes
         for i in range(num_batches):
             # Calculamos los índices de inicio y fin
             start_idx = i * batch_size
             end_idx = min(start_idx + batch_size, m)
-            
             # Extraemos el lote actual
             batch_params = params[start_idx:end_idx]
             batch_y = y[start_idx:end_idx]
-            
             # Entrenamos sólo con este lote.
             weights, bias, batch_cost = train_step(weights, bias, batch_params, batch_y, lr)
-            
             # Sumamos el costo del lote para sacar el promedio después
             epoch_train_cost += batch_cost
+            # Actualizar barra de progreso
+            pbar.update(1)
+            pbar.set_postfix({
+                "ep": f"{epoch+1}/{epochs}",
+                "batch": f"{i+1}/{num_batches}",
+            })
             
         # Costo promedio de entrenamiento de toda la época
         epoch_train_cost /= num_batches

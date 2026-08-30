@@ -114,17 +114,98 @@
 
 \begin{document}
 
-\maketitle
+\begin{titlepage}
+    \thispagestyle{empty}
+
+    \begin{tikzpicture}[remember picture, overlay]
+
+        % Fondo
+        \fill[black!2]
+        (current page.south west) rectangle (current page.north east);
+
+        % Barra superior
+        \fill[AirForceBlue]
+        (current page.north west) rectangle
+        ([xshift=\paperwidth,yshift=-1.2cm]current page.north west);
+
+        % Elemento decorativo
+        \fill[skyblue]
+        ([xshift=-1.5cm,yshift=-1.2cm]current page.north east)
+        -- ([xshift=-5cm,yshift=-1.2cm]current page.north east)
+        -- ([xshift=-2.5cm,yshift=-4cm]current page.north east)
+        -- ([xshift=1.5cm,yshift=-4cm]current page.north east)
+        -- cycle;
+
+        % Línea decorativa inferior
+        \fill[daphne]
+        ([yshift=1.5cm]current page.south west)
+        rectangle
+        ([xshift=\paperwidth,yshift=1.9cm]current page.south west);
+
+    \end{tikzpicture}
+
+    \vspace*{1.5cm}
+
+    % Logo y nombre de la institución
+    \begin{center}
+        \includegraphics[width=0.22\textwidth]{logo_tec.png}
+
+        \vspace{0.4cm}
+
+        {\Large\bfseries Tecnológico de Monterrey}
+
+        \vspace{0.3cm}
+
+        {\large Inteligencia artificial avanzada para la ciencia de datos}
+    \end{center}
+
+    \vfill
+
+    % Título principal
+    \begin{center}
+
+        {\color{AirForceBlue}
+        \fontsize{28}{32}\selectfont
+        \bfseries Reporte}
+
+        \vspace{0.7cm}
+
+        {\color{daphne}
+        \fontsize{17}{21}\selectfont
+        Implementación de un modelo de regresión lineal\\
+        mediante Descenso de Gradiente}
+
+        \vspace{1.2cm}
+
+        \rule{0.55\textwidth}{1pt}
+
+        \vspace{0.8cm}
+
+        {\large
+        \textbf{Mauricio Olguín Sánchez}\\
+        A01711522}
+
+    \end{center}
+
+    \vfill
+
+    % Información inferior
+    \begin{center}
+        {\large
+        Agosto 2026}
+    \end{center}
+
+\end{titlepage}
 
 \tableofcontents
 
-\chapter{Realizando la implementación «A manita»}
+\chapter{Realizando la implementación «a manita»}
 
 \section{Sobre la base de datos seleccionada}
 
-Después de haber investigado en páginas como \href{https://archive.ics.uci.edu/}{UC Irvine}, \href{https://kaggle.com/}{Kaggle}, el \href{https://data.worldbank.org/}{World Banck Open Data}, entre otros, encontré en la página de \href{https://www.openml.org/}{OpenML} un \textit{dataset} interesante. Tras aplicar varios filtros, encontre la base de datos \href{https://www.openml.org/search?type=data&status=active&id=42728}{Airlines\_DepDelay\_10M}.
+Después de haber investigado en páginas como \href{https://archive.ics.uci.edu/}{UC Irvine}, \href{https://kaggle.com/}{Kaggle}, el \href{https://data.worldbank.org/}{World Banck Open Data}, entre otras bases de datos, en la página de \href{https://www.openml.org/}{OpenML} encontré un \textit{dataset} que se me hizo interesante. Tras aplicar varios filtros, encontre la base de datos \href{https://www.openml.org/search?type=data&status=active&id=42728}{Airlines\_DepDelay\_10M}.
 \newline
-Esta base de datos está disponible en OpenML y está construida a partir de datos provenientes de la Oficina de Estadísticas de Transporte de los Estados Unidos (\textit{Bureau of Transportation Statistics}, BTS), específicamente de la base de datos \textit{Airline On-Time Performance Data}.
+Esta base de datos está construida a partir de datos provenientes de la Oficina de Estadísticas de Transporte de los Estados Unidos (\textit{Bureau of Transportation Statistics}, BTS), específicamente, de la base de datos \textit{Airline On-Time Performance Data}.
 \newline
 La base de datos seleccionada contiene 10,000,000 de registros y 10 variables, y corresponde a un problema de regresión. A continuación, presnto una breve descripción general del \textit{dataset}:
 \begin{description}
@@ -160,35 +241,39 @@ Sin embargo, si se quiciera obtener más datos actuales, habría que descargarlo
 
 \subsection{\textit{Transforming}}
 
+\subsection{Sobre los atributos \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek}}
+
 Las variables \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek}, aunque se encuentran representadas numéricamente en el conjunto de datos, las trataré como variables categóricas. Esto se debe a que, en realidad, los valores numéricos representan categorías y no implican necesariamente una relación lineal entre ellas. Por ejemplo, el mes representado por el valor 12 no debe interpretarse como una categoría doce veces mayor que el mes representado por el valor 1.
-
+\newline
 Para representar estas variables dentro del modelo de regresión, utilizaré la técnica de \textit{One-Hot Encoding}. Aunque esto implicará que creesca la dimensionalidad del conjunto de datos.
-
-En contraste, las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} son explícitamente categóricas, pero serán excluidas del modelo. Su transformación (utilizando la misma técnica) produciría un incremento considerablemente mayor en la cantidad de variables. Princpialmente, tomo esta decisión con el objetivo de mantener un tiempo de ejecución razonable y centrar el proyecto en la implementación manual del algoritmo de regresión.
+\newline
+Por último, debido a que el modelo incorpora un término independiente (\textit{bias}), se descartó una categoría de referencia para cada variable categórica mediante \textit{One-Hot Encoding} con \textit{drop first}. De esta manera se evita introducir una dependencia lineal exacta entre las variables indicadoras y el intercepto del modelo.
+\newline
+En contraste, las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} son explícitamente categóricas, pero serán excluidas del modelo. Su transformación (utilizando la misma técnica de antes) produciría un incremento considerablemente mayor en la cantidad de variables. Princpialmente, tomo esta decisión con el objetivo de mantener un tiempo de ejecución razonable y centrar el proyecto en la implementación manual del algoritmo de regresión.
 
 \subsubsection{Sobre los atributos \textit{CRSDepTime} y \textit{CRSArrTime}}
 
-Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas programadas de salida y llegada de los vuelos. En el conjunto de datos, estas se representan en el formato HHMM, es decir, que si la hora era 13:20, en los datos se muestran 1320.
+Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas programadas de salida y llegada de los vuelos. En el conjunto de datos original, estas se presentan en formato numérico continuo basado en la estructura HHMM (por ejemplo, las 13:20 se representan como 1320).
 \newline
-Sin embargo, esta representación no resulta adecuada al momento de utilizarla directamente como valores numéricos porque, dentro del modelo de regresión, no será representado la distancia real. Por ejemplo, los valores de 2355 y 5, aunque estan apartados por 10 minutos, utilizando los datos tal cual como vienen en el conjunto de datos, estos estarían muy separados entre sí.
+Sin embargo, esta representación no es adecuada para ser procesada de forma directa por un modelo de regresión lineal. El formato HHMM introduce discontinuidades matemáticas artificiales debido a los cambios de hora. Por ejemplo, los valores 1059 (10:59) y 1100 (11:00) tienen una separación temporal real de apenas 1 minuto; no obstante, si el modelo consume los datos en su formato original, interpretará una distancia matemática de 41 unidades. Esta magnitud falsa distorsiona los gradientes durante el entrenamiento, asumiendo una separación temporal mucho mayor a la real.
 \newline
-Es por esto que ambas variables tienen que ser tranformadas y, la mejor conversión que he podido investigar es utilizar como referencia la medianoche. Para realizar esta conversión, se separó la hora y los minutos del valor original y se aplicó la siguiente expresión:
+Para corregir este desajuste y linealizar la variable, se transformaron ambos atributos utilizando como referencia la medianoche absoluta. Para ello, se separaron las horas y los minutos del valor original y se aplicó la siguiente ecuación:
 
 \begin{equation*}
 	\text{Minutos}_{\text{desde la media noche}} = 60 \times \text{Hora} + \text{Minutos}
 \end{equation*}
 
-De esta forma, conservamos la información temporal original y proporcionamos una representación numérica más adecuada para el modelo de regresión.
+Esta transformación garantiza que, la distancia numérica entre cualquier par de horas, refleja entonces con exactitud la distancia real. 1059 se convierte en 659 y 1100 en 660, logrando la diferencia exacta de 1 unidad. Además, se mantinene la jerarquía de los horarios a lo largo del día en un especto entre 0 a 1439.
 
 \subsubsection{Sobre el formato del archivo de los datos}
 
-Al empezar a realizar una exploración de los datos, cada que tenía que ejecutar el programa para visualizarlos, tardaba un aproximado de 45 segundos cada que ejecutaba el programa. Investigando opciones para solucionar este problema, me encontré con el formato \lstinline|parquet|. Este formato esta precesiamente optimizado para mejorar el manejo de datos complejos, el rendimiento de las consultas que se hacen y la eficiencia del almacenamiento~\cite{ibmQuApache}.
+Al empezar a realizar una exploración de los datos, cada vez que tenía que ejecutar el programa para realizar algo, tardaba aproximadamente 45 segundos en sólo cargar los datos. Investigando opciones para solucionar este problema, me encontré con el formato \lstinline[style=pythonish]|parquet|. Este formato esta precesiamente optimizado para mejorar el manejo de datos complejos, el rendimiento de las consultas que se hacen y la eficiencia del almacenamiento~\cite{ibmQuApache}.
 \newline
-Esta integración, al ver que me resultaería óptima para poder realizar más prubeas más rapidas, la he implementado. Así pues, el archivo ha pasado de tener un peso de 385 MB a sólo 56 MB; además de que el timepo de carga se redujo drásticamente de 45 segundos a 2 segundos o menos.
+Al informarme que esta integración me resultaería óptima para poder realizar más prubeas más rapidas, la he implementado. Así pues, el archivo ha pasado de tener un peso de 385 MB a sólo 56 MB; además de que el timepo de carga se redujo drásticamente de 45 segundos a 2 segundos o menos en la carga de datos.
 
 \subsection{\textit{Loading}}
 
-Una vez hechas las transformaciones anteriores, ahora dividiré el tamaño de mi \textit{dataset} en tres principales secciones: \textit{train}, \textit{validation} y \textit{test}. Al ser la cantidad de datos tan alta, podría realizar varias particiones para \textit{validation}, sin embargo, en esta primera parte en donde me enfoco aprender el algoritmo, sólo haré una ves esta división. Así pues, utilizaré una proporcion de 98\% de los datos para \textit{train}, 1\% para \textit{validation} y 1\% para \textit{test}.~\cite{ml4devsTrainingValidation}
+Una vez hechas las transformaciones anteriores, ahora dividí el tamaño de mi \textit{dataset} en tres principales secciones: \textit{train}, \textit{validation} y \textit{test}. Al ser la cantidad de datos tan alta, podría realizar varias particiones para \textit{validation}, sin embargo, en esta primera parte en donde me enfoco aprender el algoritmo, sólo haré una ves esta división. Así pues, utilizaré una proporcion de 98\% de los datos para \textit{train}, 1\% para \textit{validation} y 1\% para \textit{test}.~\cite{ml4devsTrainingValidation}
 
 \section{\textit{Exploratoy Data Analysis}}
 
@@ -260,7 +345,7 @@ Como se puede observar en la matriz, existe una correlación lineal débil entre
 A partir de este análisis, podemos determinar que:
 
 \begin{description}
-    \item[Naturaleza de los datos:] La baja correlación generalizada sugiere que la relación que dicta los retrasos no es estrictamente lineal. Esto nos permite justificar desde ahora si el modelo de Regresión Lineal obtiene un coeficiente de determinación ($R^2$) moderado, ya que el algoritmo hará su mejor esfuerzo sobre una base de datos compleja.
+    \item[Naturaleza de los datos:] La baja correlación generalizada sugiere que la relación que dicta los retrasos no es estrictamente lineal. La baja correlación observada entre las variables predictoras y \textit{DepDelay} sugiere que una parte importante de la variabilidad de los retrasos podría no ser explicada mediante relaciones lineales simples. Por ello, es razonable esperar que el coeficiente de determinación \(R^2\) obtenido por una regresión lineal sea limitado.
     \item[Multicolinealidad temporal:] La fuerte relación entre las horas de salida y llegada implica que ambas variables aportan información redundante al modelo, lo cual podría generar cierta inestabilidad al momento de que el algoritmo asigne los pesos.
     \item[Disparidad de magnitudes:] Las variables independientes operan en escalas drásticamente distintas, contrastando vuelos de miles de millas físicas contra el formato temporal de horas y minutos.
 \end{description}
@@ -359,20 +444,31 @@ El signo negativo es fundamental, ya que el gradiente indica la dirección de ma
 
 \subsubsection{Proceso de entrenamiento}
 
-Las funciones anteriores se integraron en un ciclo de entrenamiento. En cada época se realizan las siguientes operaciones:
+Las funciones anteriores se integraron en un ciclo de entrenamiento encargado de ajustar progresivamente los parámetros del modelo. Debido a que el conjunto de entrenamiento contiene aproximadamente 9.8 millones de observaciones, no resulta conveniente calcular los gradientes utilizando todos los datos antes de cada actualización, ya que esto incrementaría considerablemente el costo computacional.
+\newline
+Por esta razón, utilicé \textit{Mini-Batch Gradient Descent}, dividiendo el conjunto de entrenamiento en lotes de 2048 observaciones. Esta estrategia permite actualizar los parámetros varias veces durante una misma época, utilizando únicamente una fracción de los datos en cada actualización. De esta forma, se mantiene un balance entre el costo computacional de procesar todos los datos a la vez y la variabilidad que tendría realizar las actualizaciones utilizando una sola observación.
+\newline
+Durante cada época, el conjunto de entrenamiento se recorre por lotes. Para cada uno se realizan las siguientes operaciones:
 
 \begin{enumerate}
     \item Generar las predicciones utilizando los parámetros actuales.
-    \item Calcular la función de costo.
+    \item Calcular el error entre las predicciones y los valores reales.
+    \item Calcular el costo del lote mediante el error cuadrático medio (\textit{MSE}).
     \item Obtener el gradiente de cada peso.
     \item Obtener el gradiente del \textit{bias}.
-    \item Actualizar todos los pesos.
+    \item Actualizar los pesos.
     \item Actualizar el \textit{bias}.
-    \item Guardar el costo obtenido para analizar la evolución del modelo.
 \end{enumerate}
 
+Al terminar de procesar todos los lotes, se calcula el costo promedio de la época. Este valor se almacena para posteriormente comparar su evolución con la función de costo del conjunto de validación y observar si el modelo continúa aprendiendo o comienza a perder capacidad de generalización.
+\newline
+Es importante considerar que el valor del MSE se encuentra en una escala diferente a la de la variable objetivo. Debido a que \textit{DepDelay} se mantiene expresada en minutos y el error es elevado al cuadrado. Por esta razón, los valores del \textit{MSE} pueden parecer elevados sin que esto implique necesariamente que el modelo esté funcionando incorrectamente.
 
-\subsection{Uso de los conjuntos de entrenamiento, validación y prueba}
+Además, el entrenamiento de este modelo presenta una limitación importante relacionada con la implementación solicitada. Al utilizar operaciones secuenciales y evitar librerías especializadas de álgebra lineal, el costo de ejecutar múltiples configuraciones de hiperparámetros aumenta considerablemente. En un conjunto de 10 millones de observaciones, probar diferentes tasas de aprendizaje, tamaños de lote y cantidades de épocas requeriría numerosas ejecuciones y un tiempo de cómputo elevado. Por ello, en esta primera implementación se priorizó comprender y validar el funcionamiento del algoritmo antes que realizar una búsqueda exhaustiva de hiperparámetros.
+
+Finalmente, también debe considerarse que el modelo utilizado corresponde a una regresión lineal. Este modelo supone que la relación entre las variables predictoras y \textit{DepDelay} puede aproximarse mediante una combinación lineal. Sin embargo, los retrasos de los vuelos pueden depender de múltiples factores y presentar relaciones no lineales que no están representadas en las variables utilizadas. Por lo tanto, incluso con un proceso de optimización correcto, existe un límite en el desempeño que puede alcanzar este modelo y es esperable que permanezca un error residual.
+
+\subsubsection{Uso de los conjuntos de entrenamiento, validación y prueba}
 
 Para evaluar el comportamiento del modelo se utilizaron tres conjuntos de datos: \textit{train}, \textit{validation} y \textit{test}.
 
@@ -384,34 +480,36 @@ Finalmente, el conjunto de \textit{test} se mantiene separado durante el proceso
 \newline
 Esta separación permite distinguir entre el desempeño sobre los datos utilizados para aprender y el desempeño sobre datos que el modelo no utilizó para ajustar sus parámetros.
 
-\subsubsection{Monitoreo del aprendizaje y detección de \textit{overfitting}}
+\subsection{Resultados del modelo}
 
-Para observar el comportamiento del modelo durante el entrenamiento se almacena la función de costo correspondiente a cada época. Posteriormente, se pueden representar las curvas de costo de \textit{train} y \textit{validation} en una misma gráfica.
+Para el entrenamiento del modelo, utilicé los siguiente parametros:
 
-La finalidad principal de esta comparación es detectar un posible \textit{overfitting}. Si el costo de entrenamiento continúa disminuyendo mientras que el costo de validación comienza a incrementarse, esto indicaría que el modelo está ajustándose progresivamente a las características particulares de los datos de entrenamiento y perdiendo capacidad de generalización.
+\begin{itemize}
+	\item $learning\; rate = 0.01$
+	\item $epochs = 10$
+	\item $batch\; size = 2048$
+\end{itemize}
 
-Por el contrario, si ambos costos disminuyen de manera similar y permanecen relativamente cercanos, se tendría evidencia de un comportamiento de generalización más estable.
+Y, graficando la evolución del \textit{MSE} por cada epoca, me resultó en lo siguiente:
 
-El conjunto de \textit{test} no se utiliza para este monitoreo durante las épocas, sino únicamente para realizar la evaluación final del modelo.
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/cost_evolution.png}
+	\caption{Evolución del \textit{Mean Squared Error} por cada epoca.}
+	\label{fig:evo-mse}
+\end{figure}
 
-\subsubsection{Implementación de Mini-Batch}
-
-Debido al tamaño del conjunto de datos, se decidió utilizar el \textit{Descenso de Gradiente por Mini-Batch}. El conjunto de entrenamiento contiene aproximadamente 9.8 millones de observaciones, por lo que calcular los gradientes utilizando todos los datos antes de cada actualización requeriría un tiempo de cómputo considerable.
-\newline
-El uso de mini-lotes permite dividir este proceso en grupos pequeños y realizar actualizaciones más frecuentes de los parámetros. De esta manera, se reduce la cantidad de datos procesados en cada actualización y se mejora el tiempo de entrenamiento sin utilizar únicamente una observación a la vez, lo que proporciona un proceso de aprendizaje más estable que el \textit{Stochastic Gradient Descent}.
-\newline
-Para esta implementación se utilizó un tamaño de lote de 256 observaciones. En cada época, el conjunto de entrenamiento se divide en estos lotes y, después de procesar cada uno, se actualizan los pesos y el \textit{bias}. Al finalizar la época, se calcula el costo promedio de los lotes procesados para monitorear la evolución del modelo.
-\newline
-La principal razón para utilizar esta técnica fue, por tanto, hacer viable el entrenamiento del modelo sobre un conjunto de datos de 10 millones de registros, reduciendo el costo computacional de cada actualización.
-
-\subsection{Resultados de este primer modelo}
+El modelo alcanzó un $R^2$ de X en el conjunto de \textit{train}, valor consistente con la baja correlación lienal observada desde el \textit{EDA} en la matriz de correlación (ver figura \ref{fig:correlation-matrix}), donde la correlación máxima llegaba a 0.12. Además, podemos observar claramente que tenemos un problema de \textit{underfitting} en nuestro modelo. Esto confirma que la limitación no proviene de un error en el pipline de datos ni en la implementación del algoritmo, sino de la naturaleza no lineal del fenómeno de retrasos en los vuelvos, que una sola neurona no puede capturar más allá de esta cota.
 
 
+\chapter{Modelo con \textit{frameworks}}
+
+Emepzando 
 
 \onecolumn
 \chapter{Anexo}
 
-\section{Figuras amplias}
+\section{Figuras ampleadas}
 
 A continuación, se vuelven a dejar todas las figuras que contienen gráficos en un mayor tamaño poder visualizarlos mejor.
 
@@ -419,7 +517,6 @@ A continuación, se vuelven a dejar todas las figuras que contienen gráficos en
 	\centering
 	\includegraphics[width=\linewidth]{../graficas/pair_plot_jupyter.png}
 \end{figure}
-
 
 \begin{figure}[h!]
 	\centering
@@ -446,15 +543,25 @@ A continuación, se vuelven a dejar todas las figuras que contienen gráficos en
 	\includegraphics[width=\linewidth]{../graficas/correlation_matrix.png}
 \end{figure}
 
-\newpage
-\section{Códigos}
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/cost_evolution.png}
+\end{figure}
 
-El siguiente código sirve únicamente para la generación de los gráficos presentados, aunque no todos fueron utilizados.
+% \newpage
+% \section{Códigos}
+
+% El siguiente código sirve únicamente para la generación de los gráficos presentados, aunque no todos fueron utilizados y/o fueron remplazados.
 % \lstinputlisting[style=pythonish]{../plotUtil.py}
 
-Código principal.
-% \lstinputlisting[style=pythonish]{../main.py}
+% Proceso de ETL.
+% \lstinputlisting[style=pythonish]{../etlProcess.py}
 
+% Implementación del modelo de regresión lineal.
+% \lstinputlisting[style=pythonish]{../regresionModel.py}
+
+% Código principal.
+% \lstinputlisting[style=pythonish]{../main.py}
 
 \printbibliography[heading=bibintoc, title={Bibliografía}]
 
