@@ -284,7 +284,7 @@ Hice un primer acercamiento general a los datos simplemente realizando un gráfi
 	\label{fig:pairplot}
 \end{figure}
 
-De estos gráficos, se puede observar que, cuando se comparan los datos entre \textit{DepDelay}, se pueden apreciar una posible zona donde la mayoría de los datos recaen, sin embargo, también es interesante ver que existen outliers negativos, es decir, que hubo días en dónde un vuelo se adelantó a la hora de su salida. También, podemos observar que entre las variables de \textit{CRSDepTime} y \textit{CRSArrTime} existe una clara agrupación de los datos, por lo que valdría la pena volver a realizar este gráfico pero ahora también comparandolo con la distancia final y/o con el tiempo de retraso.
+De estos gráficos, se puede observar que, cuando se comparan los datos entre \textit{DepDelay}, se pueden apreciar una posible zona donde la mayoría de los datos recaen, sin embargo, también es interesante ver que existen outliers negativos, es decir, que hubo días en dónde un vuelo se adelantó a la hora de su salida. También, podemos observar que entre las variables de \textit{CRSDepTime} y \textit{CRSArrTime} existe una clara agrupación de los datos, debido a que ambos datos están representando horas específicas.
 \newline
 Ahora que tenemos el panorama general de los datos, podría pasar a realizar gráficas específicas que me cuenten un poco más sobre los mismos datos. Al contar con los datos de los días de la semana, días del mes, meses del año y las horas en las que se retrasan, decidí hacer un gráfico con los minutos promedio por cada serie de tiempo para ver cómo es que evolucionan los retrasos durante cada periodo de tiempo (ver figura \ref{fig:serie-retrasos})
 
@@ -336,7 +336,7 @@ Por último, el gráfico más interesante en donde podemos comparar y darnos cue
 	\label{fig:correlation-matrix}
 \end{figure}
 
-Como se puede observar en la matriz, existe una correlación lineal débil entre la mayoría de las variables independientes y la variable objetivo \textit{DepDelay}. Las excepciones relativas son \textit{CRSDepTime} y \textit{CRSArrTime}, que presentan los valores positivos más altos (0.12 y 0.11 respectivamente), aunque su poder predictivo lineal sigue siendo moderado[cite: 3]. Asimismo, se detectó una fuerte multicolinealidad (0.70) entre \textit{CRSDepTime} y \textit{CRSArrTime}; un comportamiento estadísticamente esperado dado que representan ventanas temporales lógicamente secuenciales de un mismo vuelo.
+Como se puede observar en la matriz, existe una correlación lineal débil entre la mayoría de las variables independientes y la variable objetivo \textit{DepDelay}. Las excepciones relativas son \textit{CRSDepTime} y \textit{CRSArrTime}, que presentan los valores positivos más altos (0.12 en ambos), aunque su poder predictivo lineal sigue siendo moderado. Asimismo, se detectó una fuerte multicolinealidad (0.80) entre \textit{CRSDepTime} y \textit{CRSArrTime}; un comportamiento estadísticamente esperado dado que representan ventanas temporales lógicamente secuenciales de un mismo vuelo.
 
 \subsection{Conclusiones}
 
@@ -422,7 +422,16 @@ donde $\alpha$ representa la tasa de aprendizaje (\textit{learning rate}). El si
 
 Debido a que el conjunto de entrenamiento contiene aproximadamente 9.8 millones de observaciones, calcular los gradientes utilizando todos los datos antes de cada actualización resultaba computacionalmente costos. Por ello se utilizó \textit{Mini-Batch Gradient Descent}, dividiendo el conjunto de entrenamiento en lotes de 2048 observaciones. Esto permite actualizar los parámetros varias veces por época utilizando solo una fracción de los datos en cada paso, logrando un balance entre el costo computacional de usar todos los datos a la vez y la inestabilidad de actualizar con una sola observación.
 \newline
-Durante cada época se recorren todos los lotes, repitiendo para cada uno el ciclo: predicción $\rightarrow$ error $\rightarrow$ costo $\rightarrow$ gradientes $\rightarrow$ actualización de $w$ y $b$. Al finalizar la época se promedia el costo de entrenamiento entre todos los lotes.
+Durante cada época se recorren todos los lotes, repitiendo para cada uno ciclo lo siguiente:
+
+\begin{enumerate}
+	\item Se realiza una predicción.
+	\item Se calcula el error.
+	\item Calculamos el costo.
+	\item Calculamos los gradientes.
+	\item Actualiamos $w$ y $b$.
+	\item Al terminar la época, se promedia el costo de entrenamiento entre todos los lotes.
+\end{enumerate}
 
 \subsubsection{Uso de los conjuntos de entrenamiento, validación y prueba}
 
@@ -449,14 +458,14 @@ Graficando la evolución del \textit{MSE} por cada epoca, resultó en lo siguien
 	\label{fig:evo-mse}
 \end{figure}
 
-El modelo alcanzó un $R^2$ de 0.0216 en el conjunto de \textit{train}, valor consistente con la baja correlación lienal observada desde el \textit{EDA} en la matriz de correlación (ver figura \ref{fig:correlation-matrix}), donde la correlación máxima llegaba a 0.12. Además, podemos observar claramente que tenemos un problema de \textit{underfitting} en nuestro modelo. Esto confirma que la limitación no proviene de un error en el pipline de datos ni en la implementación del algoritmo, sino de la naturaleza no lineal del fenómeno de retrasos en los vuelvos, que una sola neurona no puede capturar más allá de esta cota.
+El modelo alcanzó un $R^2$ de 0.0217 en el conjunto de \textit{train}, valor consistente con la baja correlación lienal observada desde el \textit{EDA} en la matriz de correlación (ver figura \ref{fig:correlation-matrix}), donde la correlación máxima llegaba a 0.12. Además, podemos observar claramente que tenemos un problema de \textit{underfitting} en nuestro modelo. Esto confirma que la limitación no proviene de un error en el pipline de datos ni en la implementación del algoritmo, sino de la naturaleza no lineal del fenómeno de retrasos en los vuelvos, que una sola neurona no puede capturar más allá de esta cota.
 \newline
-Aunque no podemos graficar una compración entre los valores $X$ vs $Y$ junto con los $X$ vs $\hat{Y}$, porque la dimensión de las variables predictorias es mayor a 3, un gráfico interesante podría ser comparando en dónde es, simplemente, comprar $Y$ vs $\hat{Y}$ y $Y$ con ella misma. De esta forma, podemos visualizar de forma sencilla si es que realmente los datos que se está prediciendo son realmente los que deberían de ser. El resultado de hacer esto es el siguiente (ver figura \ref{fig:predict_vs_actual}):
+Aunque no podemos graficar una compración entre los valores $X$ vs $Y$ junto con los $X$ vs $\hat{Y}$, porque la dimensión de las variables predictorias es mayor a 3, un gráfico interesante podría ser comprar $Y$ vs $\hat{Y}$ y $Y$ con ella misma. De esta forma, podemos visualizar de forma sencilla si es que realmente los datos que se está prediciendo son realmente los que deberían de ser. El resultado de hacer esto es el siguiente (ver figura \ref{fig:predict_vs_actual}):
 
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_test.png}
-	\caption{Valor predicho contra el actual.}
+	\caption{Valor predicho contra el actual. La linea recta sería el resultado ideal, mientras que todos los puntos azules son los resultados que el modelo predijo vs el real.\\ \textbf{NOTA:} Los datos reales tendrían que abarcar desde aproximadamente desde -1000 hasta 1000, pero esto sería devido a los outliers. Por lo que no vale la pena graficar en un rango tan grande y mejor visualizar los datos realmente predecido.}
 	\label{fig:predict_vs_actual}
 \end{figure}
 
@@ -508,6 +517,10 @@ A continuación, se vuelven a dejar todas las figuras que contienen gráficos en
 	\includegraphics[width=\linewidth]{../graficas/cost_evolution.png}
 \end{figure}
 
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_test.png}
+\end{figure}
 
 \chapter{Códigos}
 

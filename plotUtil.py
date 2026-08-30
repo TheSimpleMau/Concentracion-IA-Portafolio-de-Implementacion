@@ -92,8 +92,7 @@ def predicted_vs_actual(y_real: list, y_pred: list, r2: float, dataset_name="Tes
     plt.figure(figsize=(8, 8))
     plt.scatter(y_real, y_pred, s=1, alpha=0.15)
     plt.legend()
-    lims = [min(min(y_real), min(y_pred)), max(max(y_real), max(y_pred))]
-    plt.plot(lims, lims, 'r--', label="Predicción perfecta (y = x)")
+    plt.plot(range(0,501), range(0,501), 'r--', label="Predicción perfecta (y = x)")
     plt.xlabel("Retraso real (minutos)")
     plt.ylabel("Retraso predicho (minutos)")
     plt.title(f"Predicción vs. Real ({dataset_name}) — $R^2$ = {r2:.4f}")
