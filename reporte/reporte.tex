@@ -499,12 +499,22 @@ Y, graficando la evolución del \textit{MSE} por cada epoca, me resultó en lo s
 	\label{fig:evo-mse}
 \end{figure}
 
-El modelo alcanzó un $R^2$ de X en el conjunto de \textit{train}, valor consistente con la baja correlación lienal observada desde el \textit{EDA} en la matriz de correlación (ver figura \ref{fig:correlation-matrix}), donde la correlación máxima llegaba a 0.12. Además, podemos observar claramente que tenemos un problema de \textit{underfitting} en nuestro modelo. Esto confirma que la limitación no proviene de un error en el pipline de datos ni en la implementación del algoritmo, sino de la naturaleza no lineal del fenómeno de retrasos en los vuelvos, que una sola neurona no puede capturar más allá de esta cota.
+El modelo alcanzó un $R^2$ de 0.0216 en el conjunto de \textit{train}, valor consistente con la baja correlación lienal observada desde el \textit{EDA} en la matriz de correlación (ver figura \ref{fig:correlation-matrix}), donde la correlación máxima llegaba a 0.12. Además, podemos observar claramente que tenemos un problema de \textit{underfitting} en nuestro modelo. Esto confirma que la limitación no proviene de un error en el pipline de datos ni en la implementación del algoritmo, sino de la naturaleza no lineal del fenómeno de retrasos en los vuelvos, que una sola neurona no puede capturar más allá de esta cota.
+\newline
+Aunque no podemos graficar una compración entre los valores $X$ vs $Y$ junto con los $X$ vs $\hat{Y}$, porque la dimensión de las variables predictorias es mayor a 3, un gráfico interesante podría ser comparando en dónde es, simplemente, comprar $Y$ vs $\hat{Y}$ y $Y$ con ella misma. De esta forma, podemos visualizar de forma sencilla si es que realmente los datos que se está prediciendo son realmente los que deberían de ser. El resultado de hacer esto es el siguiente (ver figura \ref{fig:predict_vs_actual}):
 
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_test.png}
+	\caption{Valor predicho contra el actual.}
+	\label{fig:predict_vs_actual}
+\end{figure}
+
+De esta forma, podemos corroborar todo lo dicho ya antes, de una forma visual muy sencilla.
 
 \chapter{Modelo con \textit{frameworks}}
 
-Emepzando 
+(Aun no comienzo con esta parte)
 
 \onecolumn
 \chapter{Anexo}

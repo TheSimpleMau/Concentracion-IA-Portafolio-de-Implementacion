@@ -34,8 +34,7 @@ def main():
     # ETL
     df, Xtrain_norm, Xvalidation_norm, Xtest_norm, ytrain, yvalidation, ytest = etl_process()
 
-    _plot_graps = True # cambiar a True en caso de querer graficar
-
+    _plot_graps = False # cambiar a True en caso de querer graficar
     if _plot_graps:
         print("Graficando parte análisis...")
         initial_graphs(df)

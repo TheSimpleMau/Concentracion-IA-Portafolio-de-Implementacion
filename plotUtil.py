@@ -91,6 +91,7 @@ def pair_plot(df:pd.DataFrame):
 def predicted_vs_actual(y_real: list, y_pred: list, r2: float, dataset_name="Test"):
     plt.figure(figsize=(8, 8))
     plt.scatter(y_real, y_pred, s=1, alpha=0.15)
+    plt.legend()
     lims = [min(min(y_real), min(y_pred)), max(max(y_real), max(y_pred))]
     plt.plot(lims, lims, 'r--', label="Predicción perfecta (y = x)")
     plt.xlabel("Retraso real (minutos)")
