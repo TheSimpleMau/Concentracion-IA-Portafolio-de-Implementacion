@@ -69,19 +69,23 @@ def split_data(df:pd.DataFrame):
     ytrain = Yvalues[0:(df_len*98)//100]
     yvalidation = Yvalues[(df_len*98)//100:(df_len*99)//100]
     ytest = Yvalues[(df_len*99)//100::]
-    # Aunque el dataset al final lo separo, también regreso todo el dataset compelto para poder hacer un EDA
-    # más profundo en otra sección.
+    # Regreso también el dataset completo para realizar gráficas en caso de ser necesario
     return df, Xtrain, Xvalidation, Xtest, ytrain, yvalidation, ytest
 
 
 def normalize_data(X_train: pd.DataFrame, X_val: pd.DataFrame, X_test: pd.DataFrame):
-    # Encontramos los mínimos y máximos en los datos de entrenamiento
-    min_vals = X_train.min()
-    max_vals = X_train.max()
-    
-    # Aplicamos la fórmula a los tres conjuntos usando los parámetros de train
-    X_train_norm = (X_train - min_vals) / (max_vals - min_vals)
-    X_val_norm = (X_val - min_vals) / (max_vals - min_vals)
-    X_test_norm = (X_test - min_vals) / (max_vals - min_vals)
-    
+    columns_to_normalize = ["CRSDepTime", "CRSArrTime", "Distance"]
+    X_train_norm = X_train.copy()
+    X_val_norm = X_val.copy()
+    X_test_norm = X_test.copy()
+
+    # Min y max calculados con train
+    min_vals = X_train[columns_to_normalize].min()
+    max_vals = X_train[columns_to_normalize].max()
+
+    # Normalización
+    X_train_norm[columns_to_normalize] = (X_train[columns_to_normalize] - min_vals) / (max_vals - min_vals)
+    X_val_norm[columns_to_normalize]   = (X_val[columns_to_normalize]   - min_vals) / (max_vals - min_vals)
+    X_test_norm[columns_to_normalize]  = (X_test[columns_to_normalize]  - min_vals) / (max_vals - min_vals)
+
     return X_train_norm, X_val_norm, X_test_norm

@@ -247,8 +247,6 @@ Las variables \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek}, aunque s
 \newline
 Para representar estas variables dentro del modelo de regresión, utilizaré la técnica de \textit{One-Hot Encoding}. Aunque esto implicará que creesca la dimensionalidad del conjunto de datos.
 \newline
-Por último, debido a que el modelo incorpora un término independiente (\textit{bias}), se descartó una categoría de referencia para cada variable categórica mediante \textit{One-Hot Encoding} con \textit{drop first}. De esta manera se evita introducir una dependencia lineal exacta entre las variables indicadoras y el intercepto del modelo.
-\newline
 En contraste, las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} son explícitamente categóricas, pero serán excluidas del modelo. Su transformación (utilizando la misma técnica de antes) produciría un incremento considerablemente mayor en la cantidad de variables. Princpialmente, tomo esta decisión con el objetivo de mantener un tiempo de ejecución razonable y centrar el proyecto en la implementación manual del algoritmo de regresión.
 
 \subsubsection{Sobre los atributos \textit{CRSDepTime} y \textit{CRSArrTime}}
@@ -364,121 +362,73 @@ Hay que tener cuidado a qué variables les aplicamos la noramlización de los da
 
 \subsection{Implementación del modelo}
 
-Una vez preparados y normalizados los datos, ahora podemos pasar con la implementación del modelo de regresión.  El modelo utilizado parte de una combinación lineal de las variables predictoras. Para una observación con $n$ características, la predicción se expresa como:
+Una vez preparados y normalizados los datos, se implementó el modelo de regresión lineal a partir de las variables predictoras. Para una observación con $n$ características, la predicción se expresa como:
 
 \begin{equation}
-\hat{y}=b+\sum_{j=1}^{n}w_jx_j
+\hat{y} = b + \sum_{j=1}^{n} w_j x_j
 \end{equation}
 
-donde $\hat{y}$ representa la predicción del modelo, $b$ corresponde al \textit{bias} o intercepto, $w_j$ representa el peso asociado a la característica $x_j$ y $n$ corresponde al número total de variables predictoras.
+donde $\hat{y}$ representa la predicción del modelo, $b$ el bias, $w_j$ el peso asociado a la característica $x_j$, y $n$ el número total de variables predictoras. A continuación se describen las funciones que componen esta implementación.
 
-\subsubsection{Función de hipótesis}
-La primera función implementada corresponde a la hipótesis del modelo. Su función es recibir las características de una observación, los pesos actuales y el \textit{bias}, para obtener una predicción.
+\subsubsection{Función de hipótesis y cálculo del error}
+
+La función de hipótesis recibe las características de una observación junto con los pesos y el bias actuales, y devuelve una predicción:
 
 \begin{equation}
-h(x)=b+\sum_{j=1}^{n}w_jx_j
+h(x) = b + \sum_{j=1}^{n} w_j x_j
 \end{equation}
 
-Esta función constituye la base del resto de la implementación, ya que tanto el cálculo del error como el cálculo de los gradientes dependen de las predicciones generadas por la hipótesis.
-
-\subsubsection{Cálculo del error}
-
-Una vez obtenida una predicción, se calcula la diferencia entre el valor predicho y el valor real:
+Sobre esta predicción se calcula el error de cada observación como la diferencia entre el valor predicho y el real:
 
 \begin{equation}
-e_i=\hat{y}_i-y_i
+e_i = \hat{y}_i - y_i
 \end{equation}
 
-El signo del error es importante durante el entrenamiento, ya que posteriormente será utilizado para determinar la dirección en la que deben modificarse los parámetros del modelo.
+Tanto la hipótesis como el error son la base del resto de la implementación, ya que el cálculo del costo y de los gradientes dependen directamente de ellos.
 
 \subsubsection{Función de costo}
 
-Para medir qué tan alejadas se encuentran las predicciones respecto a los valores reales se utilizó el error cuadrático medio (\textit{Mean Squared Error}, MSE).
-
-La función de costo utilizada es:
+Para medir qué tan alejadas se encuentran las predicciones de los valores reales se utilizó el \textit{Mean Squared Error} (MSE):
 
 \begin{equation}
-J(w,b)=\frac{1}{m}\sum_{i=1}^{m}(\hat{y}_i-y_i)^2
+J(w, b) = \frac{1}{m}\sum_{i=1}^{m}(\hat{y}_i - y_i)^2
 \end{equation}
 
-donde $m$ representa el número de observaciones utilizadas para el entrenamiento.
+donde $m$ representa el número de observaciones utilizadas. Elevar los errores al cuadrado evita que los errores positivos y negativos se cancelen entre sí, y penaliza en mayor medida los errores de mayor magnitud. El objetivo del Descenso de Gradiente es encontrar los valores de $w$ y $b$ que minimicen esta función.
 
-Elevar los errores al cuadrado permite evitar que los errores positivos y negativos se cancelen entre sí y penaliza en mayor medida los errores de mayor magnitud. El objetivo del \textit{Descenso de Gradiente} será entonces encontrar los valores de $w$ y $b$ que minimicen esta función.
+\subsubsection{Gradientes de los parámetros}
 
-\subsubsection{Gradiente respecto a los pesos}
+Para actualizar los parámetros del modelo es necesario conocer cómo cambia la función de costo respecto a cada uno de ellos. Las derivadas parciales del costo respecto a un peso $w_j$ y respecto al bias son:
 
-Para poder modificar los parámetros del modelo es necesario determinar cómo cambia la función de costo cuando se modifica cada uno de los pesos. La derivada parcial del costo respecto a un peso $w_j$ es:
+\begin{align}
+\frac{\partial J}{\partial w_j} &= \frac{2}{m}\sum_{i=1}^{m}(\hat{y}_i - y_i)\, x_{ij} \\
+\frac{\partial J}{\partial b} &= \frac{2}{m}\sum_{i=1}^{m}(\hat{y}_i - y_i)
+\end{align}
 
-\begin{equation}
-\frac{\partial J}{\partial w_j} = \frac{2}{m} \sum_{i=1}^{m} (\hat{y}_i-y_i)x_{ij}
-\end{equation}
-
-Durante la implementación se recorre cada peso y, para cada uno de ellos, se recorren todas las observaciones del conjunto de entrenamiento. Para cada observación se calcula su predicción, se obtiene su error y posteriormente se multiplica dicho error por el valor correspondiente de la característica. El resultado acumulado representa la dirección y magnitud en la que debe modificarse cada peso para disminuir la función de costo.
-
-\subsubsection{Gradiente respecto al \textit{bias}}
-
-El \textit{bias} también necesita actualizarse durante el entrenamiento. La derivada de la función de costo respecto al \textit{bias} es:
-
-\begin{equation}
-\frac{\partial J}{\partial b} = \frac{2}{m} \sum_{i=1}^{m} (\hat{y}_i-y_i)
-\end{equation}
-
-A diferencia del gradiente de los pesos, en este caso no se multiplica el error por ninguna característica. Esto se debe a que la derivada de la hipótesis respecto al \textit{bias} es igual a $1$.
+Ambas expresiones se calculan recorriendo todas las observaciones del lote y acumulando el error correspondiente; la única diferencia es que, en el caso del bias, el error no se multiplica por ninguna característica, ya que la derivada de la hipótesis respecto a $b$ es igual a 1. El resultado de cada gradiente indica la dirección y magnitud en la que debe modificarse el parámetro correspondiente para disminuir el costo.
 
 \subsubsection{Actualización de los parámetros}
-Una vez calculados los gradientes, los parámetros del modelo son actualizados mediante el algoritmo de Descenso de Gradiente. La actualización de cada peso se realiza mediante:
 
-\begin{equation}
-w_j^{nuevo} = w_j-\alpha \frac{\partial J}{\partial w_j}
-\end{equation}
+Con los gradientes calculados, los parámetros se actualizan mediante el algoritmo de Descenso de Gradiente:
 
-Mientras que el \textit{bias} se actualiza mediante:
+\begin{align}
+w_j^{\text{nuevo}} &= w_j - \alpha \frac{\partial J}{\partial w_j} \\
+b^{\text{nuevo}} &= b - \alpha \frac{\partial J}{\partial b}
+\end{align}
 
-\begin{equation}
-b^{nuevo} = b-\alpha \frac{\partial J}{\partial b}
-\end{equation}
+donde $\alpha$ representa la tasa de aprendizaje (\textit{learning rate}). El signo negativo es fundamental, ya que el gradiente indica la dirección de mayor incremento del costo; por lo tanto, se avanza en la dirección contraria para acercarse a un mínimo de la función.
 
-donde $\alpha$ representa la tasa de aprendizaje (\textit{learning rate}).
+\subsubsection{Entrenamiento por mini-batch}
+
+Debido a que el conjunto de entrenamiento contiene aproximadamente 9.8 millones de observaciones, calcular los gradientes utilizando todos los datos antes de cada actualización resultaba computacionalmente costos. Por ello se utilizó \textit{Mini-Batch Gradient Descent}, dividiendo el conjunto de entrenamiento en lotes de 2048 observaciones. Esto permite actualizar los parámetros varias veces por época utilizando solo una fracción de los datos en cada paso, logrando un balance entre el costo computacional de usar todos los datos a la vez y la inestabilidad de actualizar con una sola observación.
 \newline
-El signo negativo es fundamental, ya que el gradiente indica la dirección de mayor incremento de la función de costo. Por lo tanto, se avanza en la dirección contraria para buscar un mínimo de la función.
-
-\subsubsection{Proceso de entrenamiento}
-
-Las funciones anteriores se integraron en un ciclo de entrenamiento encargado de ajustar progresivamente los parámetros del modelo. Debido a que el conjunto de entrenamiento contiene aproximadamente 9.8 millones de observaciones, no resulta conveniente calcular los gradientes utilizando todos los datos antes de cada actualización, ya que esto incrementaría considerablemente el costo computacional.
-\newline
-Por esta razón, utilicé \textit{Mini-Batch Gradient Descent}, dividiendo el conjunto de entrenamiento en lotes de 2048 observaciones. Esta estrategia permite actualizar los parámetros varias veces durante una misma época, utilizando únicamente una fracción de los datos en cada actualización. De esta forma, se mantiene un balance entre el costo computacional de procesar todos los datos a la vez y la variabilidad que tendría realizar las actualizaciones utilizando una sola observación.
-\newline
-Durante cada época, el conjunto de entrenamiento se recorre por lotes. Para cada uno se realizan las siguientes operaciones:
-
-\begin{enumerate}
-    \item Generar las predicciones utilizando los parámetros actuales.
-    \item Calcular el error entre las predicciones y los valores reales.
-    \item Calcular el costo del lote mediante el error cuadrático medio (\textit{MSE}).
-    \item Obtener el gradiente de cada peso.
-    \item Obtener el gradiente del \textit{bias}.
-    \item Actualizar los pesos.
-    \item Actualizar el \textit{bias}.
-\end{enumerate}
-
-Al terminar de procesar todos los lotes, se calcula el costo promedio de la época. Este valor se almacena para posteriormente comparar su evolución con la función de costo del conjunto de validación y observar si el modelo continúa aprendiendo o comienza a perder capacidad de generalización.
-\newline
-Es importante considerar que el valor del MSE se encuentra en una escala diferente a la de la variable objetivo. Debido a que \textit{DepDelay} se mantiene expresada en minutos y el error es elevado al cuadrado. Por esta razón, los valores del \textit{MSE} pueden parecer elevados sin que esto implique necesariamente que el modelo esté funcionando incorrectamente.
-
-Además, el entrenamiento de este modelo presenta una limitación importante relacionada con la implementación solicitada. Al utilizar operaciones secuenciales y evitar librerías especializadas de álgebra lineal, el costo de ejecutar múltiples configuraciones de hiperparámetros aumenta considerablemente. En un conjunto de 10 millones de observaciones, probar diferentes tasas de aprendizaje, tamaños de lote y cantidades de épocas requeriría numerosas ejecuciones y un tiempo de cómputo elevado. Por ello, en esta primera implementación se priorizó comprender y validar el funcionamiento del algoritmo antes que realizar una búsqueda exhaustiva de hiperparámetros.
-
-Finalmente, también debe considerarse que el modelo utilizado corresponde a una regresión lineal. Este modelo supone que la relación entre las variables predictoras y \textit{DepDelay} puede aproximarse mediante una combinación lineal. Sin embargo, los retrasos de los vuelos pueden depender de múltiples factores y presentar relaciones no lineales que no están representadas en las variables utilizadas. Por lo tanto, incluso con un proceso de optimización correcto, existe un límite en el desempeño que puede alcanzar este modelo y es esperable que permanezca un error residual.
+Durante cada época se recorren todos los lotes, repitiendo para cada uno el ciclo: predicción $\rightarrow$ error $\rightarrow$ costo $\rightarrow$ gradientes $\rightarrow$ actualización de $w$ y $b$. Al finalizar la época se promedia el costo de entrenamiento entre todos los lotes.
 
 \subsubsection{Uso de los conjuntos de entrenamiento, validación y prueba}
 
-Para evaluar el comportamiento del modelo se utilizaron tres conjuntos de datos: \textit{train}, \textit{validation} y \textit{test}.
-
-El conjunto de \textit{train} es el único utilizado para modificar los pesos y el \textit{bias}. En cada época, el algoritmo calcula los gradientes a partir de este conjunto y actualiza los parámetros.
+El conjunto de \textit{train} es el único utilizado para actualizar los pesos y el bias en cada época. El conjunto de \textit{validation}, en cambio, no participa en esta actualización: después de cada época se usan los parámetros obtenidos hasta ese momento para generar predicciones sobre él y calcular su costo, lo que permite observar qué tanto generaliza el modelo a datos no usados para ajustarlo.
 \newline
-El conjunto de \textit{validation} no participa en la actualización de los parámetros. Después de cada época, se utilizan los parámetros obtenidos hasta ese momento para generar predicciones sobre el conjunto de validación y calcular su correspondiente función de costo. Esto permite observar cómo generaliza el modelo sobre datos que no fueron utilizados directamente para actualizar sus parámetros.
-\newline
-Finalmente, el conjunto de \textit{test} se mantiene separado durante el proceso de entrenamiento. Una vez finalizado el entrenamiento, se utilizan los parámetros finales del modelo para generar predicciones sobre este conjunto y obtener una evaluación final del desempeño.
-\newline
-Esta separación permite distinguir entre el desempeño sobre los datos utilizados para aprender y el desempeño sobre datos que el modelo no utilizó para ajustar sus parámetros.
+El conjunto de \textit{test} se mantiene completamente al margen durante el entrenamiento y solo se utiliza al final, con los parámetros ya definidos, para obtener una evaluación final e independiente del desempeño del modelo.
 
 \subsection{Resultados del modelo}
 
@@ -490,7 +440,7 @@ Para el entrenamiento del modelo, utilicé los siguiente parametros:
 	\item $batch\; size = 2048$
 \end{itemize}
 
-Y, graficando la evolución del \textit{MSE} por cada epoca, me resultó en lo siguiente:
+Graficando la evolución del \textit{MSE} por cada epoca, resultó en lo siguiente:
 
 \begin{figure}[h!]
 	\centering
@@ -510,16 +460,16 @@ Aunque no podemos graficar una compración entre los valores $X$ vs $Y$ junto co
 	\label{fig:predict_vs_actual}
 \end{figure}
 
-De esta forma, podemos corroborar todo lo dicho ya antes, de una forma visual muy sencilla.
+Cabe mencionar que, para esta primera implementación, el conjunto de \textit{validation} únicamente se utilicó con fines de monitoreo. Esto con la intención de verificar que el modelo generaliza de forma consistente y descartar \textit{overfitting}, más que para una selección de hiperparámetro, la cuál se abordará en el siguiente capítulo.
 
 \chapter{Modelo con \textit{frameworks}}
 
-(Aun no comienzo con esta parte)
+TBD
 
 \onecolumn
-\chapter{Anexo}
 
-\section{Figuras ampleadas}
+\appendix
+\chapter{Figuras ampliadas}
 
 A continuación, se vuelven a dejar todas las figuras que contienen gráficos en un mayor tamaño poder visualizarlos mejor.
 
@@ -558,20 +508,20 @@ A continuación, se vuelven a dejar todas las figuras que contienen gráficos en
 	\includegraphics[width=\linewidth]{../graficas/cost_evolution.png}
 \end{figure}
 
-% \newpage
-% \section{Códigos}
 
-% El siguiente código sirve únicamente para la generación de los gráficos presentados, aunque no todos fueron utilizados y/o fueron remplazados.
-% \lstinputlisting[style=pythonish]{../plotUtil.py}
+\chapter{Códigos}
 
-% Proceso de ETL.
-% \lstinputlisting[style=pythonish]{../etlProcess.py}
+El siguiente código sirve únicamente para la generación de los gráficos presentados, aunque no todos fueron utilizados y/o fueron remplazados.
+\lstinputlisting[style=pythonish]{../plotUtil.py}
 
-% Implementación del modelo de regresión lineal.
-% \lstinputlisting[style=pythonish]{../regresionModel.py}
+Proceso de ETL.
+\lstinputlisting[style=pythonish]{../etlProcess.py}
 
-% Código principal.
-% \lstinputlisting[style=pythonish]{../main.py}
+Implementación del modelo de regresión lineal.
+\lstinputlisting[style=pythonish]{../regresionModel.py}
+
+Código principal.
+\lstinputlisting[style=pythonish]{../main.py}
 
 \printbibliography[heading=bibintoc, title={Bibliografía}]
 

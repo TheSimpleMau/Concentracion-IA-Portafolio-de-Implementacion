@@ -1,5 +1,4 @@
 import math
-import random
 from tqdm import tqdm # Para crear una barra de progreso al momento de entrenar el modelo
 
 def hypo(params: list, weights: list, bias: float) -> float:
@@ -13,7 +12,6 @@ def error(y_pred:float,y_real:float)->float:
 
 def cost(y_hat:list, y:list)->float:
     result = 0
-    global __errors_per_weigt
     for i in range(len(y)):
         result += (error(y_hat[i],y[i]))**2
     result = 1/len(y) * result
@@ -74,7 +72,6 @@ def train_step(weights:list, bias:float, params:list, y:list, lr:float):
     return new_weights, new_bias, current_cost
 
 def train(params:list, y:list, validation_params:list, validation_y:list, lr:float, epochs:int, batch_size:int):
-    # weights = [random.random() for _ in range(len(params[0]))]
     weights = [0 for _ in range(len(params[0]))]
     bias = 0
     train_costs = []
