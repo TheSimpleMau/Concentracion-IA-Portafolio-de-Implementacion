@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 from scipy.io import arff # Para leer el tipo de archivo en el que viene el dataset
-from OneHotEnoding import OneHotEncoding
 
 def hhmm_to_minutes(time):
     time = int(time)
@@ -46,7 +45,7 @@ def transform_data(df:pd.DataFrame):
     print("Nota: No existen valores nulos :D")
 
     print("Aplicando One Hot Encoding para columnas DayOfWeek, DayofMonth y Month...")
-    df = OneHotEncoding(df)
+    df = pd.get_dummies(df, columns=["DayOfWeek", "DayofMonth", "Month"], dtype=int)
     print("One Hot Encoding aplicado.")
 
     print("Guardando datos en formato parquet para tener una carga más rápida en futuras pruebas...")
@@ -64,9 +63,25 @@ def split_data(df:pd.DataFrame):
     Xtrain = Xvalues[0:(df_len*98)//100]
     Xvalidation = Xvalues[(df_len*98)//100:(df_len*99)//100]
     Xtest = Xvalues[(df_len*99)//100::]
+    Xtrain = Xtrain.drop(columns=["Month", "DayofMonth", "DayOfWeek"])
+    Xvalidation = Xvalidation.drop(columns=["Month", "DayofMonth", "DayOfWeek"])
+    Xtest = Xtest.drop(columns=["Month", "DayofMonth", "DayOfWeek"])
     ytrain = Yvalues[0:(df_len*98)//100]
     yvalidation = Yvalues[(df_len*98)//100:(df_len*99)//100]
     ytest = Yvalues[(df_len*99)//100::]
     # Aunque el dataset al final lo separo, también regreso todo el dataset compelto para poder hacer un EDA
     # más profundo en otra sección.
     return df, Xtrain, Xvalidation, Xtest, ytrain, yvalidation, ytest
+
+
+def normalize_data(X_train: pd.DataFrame, X_val: pd.DataFrame, X_test: pd.DataFrame):
+    # Encontramos los mínimos y máximos en los datos de entrenamiento
+    min_vals = X_train.min()
+    max_vals = X_train.max()
+    
+    # Aplicamos la fórmula a los tres conjuntos usando los parámetros de train
+    X_train_norm = (X_train - min_vals) / (max_vals - min_vals)
+    X_val_norm = (X_val - min_vals) / (max_vals - min_vals)
+    X_test_norm = (X_test - min_vals) / (max_vals - min_vals)
+    
+    return X_train_norm, X_val_norm, X_test_norm

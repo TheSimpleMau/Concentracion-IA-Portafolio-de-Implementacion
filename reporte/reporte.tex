@@ -10,7 +10,7 @@
 \usepackage[T1]{fontenc}
 %\usepackage[scaled]{uarial}
 %\renewcommand*\familydefault{\sfdefault}
-\usepackage[left=2.54cm,right=2.54cm,top=2.54cm,bottom=2.54cm]{geometry}
+\usepackage[left=2.54cm,right=2.54cm,top=2.54cm,bottom=2.54cm, headheight=28pt]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
@@ -34,6 +34,7 @@
 \usepackage{setspace}
 \usepackage{hyperref}
 \usepackage{subcaption}
+\usepackage[font=footnotesize]{caption}
 \usepackage[backend=biber, style=numeric]{biblatex}
 \addbibresource{referencias.bib}
 
@@ -51,13 +52,16 @@
 \definecolor{midnight}{RGB}{18,34,62}
 \setlength{\parindent}{0pt}
 
-\fancypagestyle{plain}{
-	% \lhead{\textbf{Mauricio Olguín Sánchez\\ A01711522}}
-	% \chead{\textbf{}}
-	\rhead{\textbf{Inteligencia artificial avanzada \\ para la ciencia de datos}}
-	\renewcommand{\headrulewidth}{1pt}
-	%\renewcommand{\footrulewidth}{1pt}
-}
+\pagestyle{fancy} % Activa el estilo en todo el documento
+\fancyhf{} % Limpia la configuración por defecto
+
+% \leftmark trae el Capítulo y \rightmark la Sección
+% Usamos \small para achicar la letra y \nouppercase para quitar las MAYÚSCULAS
+\lhead{\scriptsize \nouppercase{\leftmark}} 
+\rhead{\scriptsize \nouppercase{\rightmark}} 
+\cfoot{\thepage} % Número de página al centro abajo
+
+\renewcommand{\headrulewidth}{1pt} % La línea separadora
 
 
 \lstdefinestyle{pythonish}{
@@ -109,8 +113,6 @@
 \author{Mauricio Olguín Sánchez - A01711522}
 
 \begin{document}
-
-\pagestyle{plain}
 
 \maketitle
 
@@ -195,15 +197,13 @@ Hice un primer acercamiento general a los datos simplemente realizando un gráfi
 \begin{figure}[h!]
 	\centering
 	\includegraphics[width=\linewidth]{../graficas/pair_plot_jupyter.png}
-	\caption{\textit{Pair plot} para visualizar la mayoría de los datos comparados entre sí. No se graficaron todos los 10 millones de puntos por el tiempo de computo requerido, además de que tampoco es la intención de este gráfico. Se añadió también que, para cada punto, se etiquetara por su el día de la semana (\textit{DayOfWeek}) para intentar de visualizar algún \textit{cluster} o algúna zona de interes.}
+	\caption{\textit{Pair plot} para visualizar la mayoría de los datos comparados entre sí. No se graficaron los 10 millones de puntos por el tiempo de computo requerido, sólo se graficaron un millon. Se añadió también que, para cada punto, se etiquetara por su el día de la semana (\textit{DayOfWeek}) para intentar de visualizar algúna zona de interes así como la distribución de los mismos.}
 	\label{fig:pairplot}
 \end{figure}
 
-Como era de esperarse, al tener datos que correpsonden a periodos de tiempo, realmente no podemos ver una tendencia o información relevante de estos. Sin embargo, vale la pena destacar las comparaciones cuando los datos no se están comparando entre dos periodos de tiempo (con excepción de \textit{CRSDepTime} vs \textit{CRSArrTime}). También, no podemos observar alguna zona en donde los datos se acumulen por algún periodo de tiempo.
-
-Aunque antes he hecho el proceso de hacer un \textit{One Hot Enocding} para las variables categóricas, sirve también visualizar de forma directa estos datos tal cual dentro de estas gráficas para darme una idea general de los datos.
+De estos gráficos, se puede observar que, cuando se comparan los datos entre \textit{DepDelay}, se pueden apreciar una posible zona donde la mayoría de los datos recaen, sin embargo, también es interesante ver que existen outliers negativos, es decir, que hubo días en dónde un vuelo se adelantó a la hora de su salida. También, podemos observar que entre las variables de \textit{CRSDepTime} y \textit{CRSArrTime} existe una clara agrupación de los datos, por lo que valdría la pena volver a realizar este gráfico pero ahora también comparandolo con la distancia final y/o con el tiempo de retraso.
 \newline
-Luego, teniendo en cuenta que cuento con los datos de los días de la semana, días del mes, meses del año y las horas en las que se retrasan, decidí hacer un gráfico con los minutos promedio por cada serie de tiempo para ver cómo es que evolucionan los retrasos durante cada periodo de tiempo.
+Ahora que tenemos el panorama general de los datos, podría pasar a realizar gráficas específicas que me cuenten un poco más sobre los mismos datos. Al contar con los datos de los días de la semana, días del mes, meses del año y las horas en las que se retrasan, decidí hacer un gráfico con los minutos promedio por cada serie de tiempo para ver cómo es que evolucionan los retrasos durante cada periodo de tiempo (ver figura \ref{fig:serie-retrasos})
 
 \begin{figure}[h!]
 	\centering
@@ -222,7 +222,189 @@ Luego, teniendo en cuenta que cuento con los datos de los días de la semana, d�
 		\caption{Promedios de retrasos por cada mes.}
 	\end{subfigure}
 	\caption{Promedios de retrasos por periodos de tiempos.}
+	\label{fig:serie-retrasos}
 \end{figure}
+
+De cada uno, puedo destacar lo siguiente:
+
+\begin{itemize}
+	\item Para los retrasos por cada hora del día se puede apreciar que, si empezamos a ver la gráfica desde las 5 de la mañana (el punto más bajo en promedio de retrasos), por cada hora que pasa va incriementando el retraso en cada vuelo hasta llegar al punto máximo hasta las 7 de la tarde (19 horas).
+	\item Algo similar a lo anterior pasa a lo largo de la semana pues, a medida que se acerca el fin de semana, los vuelos cada día se retrasan más, hasta que el viernes llega a su punto máximo.
+	\item Por último, durante el verano e inicios de años es cuando existen más retrasos en los vuelos. Aunque esta información me hace pensar que coincide  con periodos vacacionales, no puedo afirmar con la información que tengo que esta sea la razón.
+\end{itemize}
+
+Sin embargo, es importante destacar que estos valores podrían estar altamente afectados por los \textit{outliers} que existen para cada serie de tiempo. Para confirmar esto, vale entonces la penas realizar el histograma específico con los retrasos (ver figura \ref{fig:hist-depdelay}).
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/depdelay_histogram.png}
+	\caption{Histograma con retrasos en los vuelos. \textbf{NOTA:} La escala de este histograma se ha recortado de $-25$ a $150$. Esto debido a que los \textit{outliers} (tanto positivos como negativos) son tan grandes y muy pocos que reducen mucho la visibilidad de la gran mayoría de los datos.} 
+	\label{fig:hist-depdelay}
+\end{figure}
+
+Es interesante observar que la inmensa mayoría de vuelos está a tiempo, ya que es en donde más se concentran los datos. Sin embargo, también es interesante ver que existen vuelos que se adelantan.
+\newline
+Por último, el gráfico más interesante en donde podemos comparar y darnos cuenta de la relación lineal entre las variables es una matriz de correlación (ver figura \ref{fig:correlation-matrix})
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/correlation_matrix.png}
+	\caption{Matriz de correlación.} 
+	\label{fig:correlation-matrix}
+\end{figure}
+
+Como se puede observar en la matriz, existe una correlación lineal débil entre la mayoría de las variables independientes y la variable objetivo \textit{DepDelay}. Las excepciones relativas son \textit{CRSDepTime} y \textit{CRSArrTime}, que presentan los valores positivos más altos (0.12 y 0.11 respectivamente), aunque su poder predictivo lineal sigue siendo moderado[cite: 3]. Asimismo, se detectó una fuerte multicolinealidad (0.70) entre \textit{CRSDepTime} y \textit{CRSArrTime}; un comportamiento estadísticamente esperado dado que representan ventanas temporales lógicamente secuenciales de un mismo vuelo.
+
+\subsection{Conclusiones}
+
+A partir de este análisis, podemos determinar que:
+
+\begin{description}
+    \item[Naturaleza de los datos:] La baja correlación generalizada sugiere que la relación que dicta los retrasos no es estrictamente lineal. Esto nos permite justificar desde ahora si el modelo de Regresión Lineal obtiene un coeficiente de determinación ($R^2$) moderado, ya que el algoritmo hará su mejor esfuerzo sobre una base de datos compleja.
+    \item[Multicolinealidad temporal:] La fuerte relación entre las horas de salida y llegada implica que ambas variables aportan información redundante al modelo, lo cual podría generar cierta inestabilidad al momento de que el algoritmo asigne los pesos.
+    \item[Disparidad de magnitudes:] Las variables independientes operan en escalas drásticamente distintas, contrastando vuelos de miles de millas físicas contra el formato temporal de horas y minutos.
+\end{description}
+
+Por estas razones, y para resolver específicamente la diferencia de magnitudes, es indispensable proceder con la normalización de los datos. Este paso asegurará que todas las características numéricas convivan en un rango equitativo. Al nivelar la escala, evitamos que las variables con valores más grandes dominen el cálculo de la función de costo, permitiendo que el algoritmo del \textit{Descenso de Gradiente} converja hacia los pesos óptimos de manera mucho más rápida y estable. En la siguiente sección, hablaré un poco más a detalle sobre los algortimos que aplicaré sobre mi modelo y su función dentro del mismo.
+
+\section{Modelo de regresión lineal sin frameworks}
+
+\subsection{Normalización de los datos}
+
+El algoritmo a utilizar para la normalización de los datos será \textit{Min-Max}:
+$$X_{norm} = \frac{X - X_{min}}{X_{max} - X_{min}}$$
+Gracias a este algoritmo, lograremos poner en una escla del 0 a 1 todos nuestros datos y, como ya se ha dicho anteriromente, durante la aplicación del \textit{Descenso del Gradiente} converja más rápido.
+\newline
+Hay que tener cuidado a qué variables les aplicamos la noramlización de los datos pues no es necesarios hacerlo para todas las variables. Además, la normalización se debe de hacer con respecto a los datos de entrenamiento, pero aplicarselo a todos los conjuntos de datos (\textit{test} y \textit{validation}). Como anteriormente he aplicado un \textit{One Hot Encoding} para las variables temporales, entonces, las úncias columanas a las que se les aplicará la normalización serán a \textit{CRSDepTime}, \textit{CRSArrTime} y \textit{Distance}.
+
+\subsection{Implementación del modelo}
+
+Una vez preparados y normalizados los datos, ahora podemos pasar con la implementación del modelo de regresión.  El modelo utilizado parte de una combinación lineal de las variables predictoras. Para una observación con $n$ características, la predicción se expresa como:
+
+\begin{equation}
+\hat{y}=b+\sum_{j=1}^{n}w_jx_j
+\end{equation}
+
+donde $\hat{y}$ representa la predicción del modelo, $b$ corresponde al \textit{bias} o intercepto, $w_j$ representa el peso asociado a la característica $x_j$ y $n$ corresponde al número total de variables predictoras.
+
+\subsubsection{Función de hipótesis}
+La primera función implementada corresponde a la hipótesis del modelo. Su función es recibir las características de una observación, los pesos actuales y el \textit{bias}, para obtener una predicción.
+
+\begin{equation}
+h(x)=b+\sum_{j=1}^{n}w_jx_j
+\end{equation}
+
+Esta función constituye la base del resto de la implementación, ya que tanto el cálculo del error como el cálculo de los gradientes dependen de las predicciones generadas por la hipótesis.
+
+\subsubsection{Cálculo del error}
+
+Una vez obtenida una predicción, se calcula la diferencia entre el valor predicho y el valor real:
+
+\begin{equation}
+e_i=\hat{y}_i-y_i
+\end{equation}
+
+El signo del error es importante durante el entrenamiento, ya que posteriormente será utilizado para determinar la dirección en la que deben modificarse los parámetros del modelo.
+
+\subsubsection{Función de costo}
+
+Para medir qué tan alejadas se encuentran las predicciones respecto a los valores reales se utilizó el error cuadrático medio (\textit{Mean Squared Error}, MSE).
+
+La función de costo utilizada es:
+
+\begin{equation}
+J(w,b)=\frac{1}{m}\sum_{i=1}^{m}(\hat{y}_i-y_i)^2
+\end{equation}
+
+donde $m$ representa el número de observaciones utilizadas para el entrenamiento.
+
+Elevar los errores al cuadrado permite evitar que los errores positivos y negativos se cancelen entre sí y penaliza en mayor medida los errores de mayor magnitud. El objetivo del \textit{Descenso de Gradiente} será entonces encontrar los valores de $w$ y $b$ que minimicen esta función.
+
+\subsubsection{Gradiente respecto a los pesos}
+
+Para poder modificar los parámetros del modelo es necesario determinar cómo cambia la función de costo cuando se modifica cada uno de los pesos. La derivada parcial del costo respecto a un peso $w_j$ es:
+
+\begin{equation}
+\frac{\partial J}{\partial w_j} = \frac{2}{m} \sum_{i=1}^{m} (\hat{y}_i-y_i)x_{ij}
+\end{equation}
+
+Durante la implementación se recorre cada peso y, para cada uno de ellos, se recorren todas las observaciones del conjunto de entrenamiento. Para cada observación se calcula su predicción, se obtiene su error y posteriormente se multiplica dicho error por el valor correspondiente de la característica. El resultado acumulado representa la dirección y magnitud en la que debe modificarse cada peso para disminuir la función de costo.
+
+\subsubsection{Gradiente respecto al \textit{bias}}
+
+El \textit{bias} también necesita actualizarse durante el entrenamiento. La derivada de la función de costo respecto al \textit{bias} es:
+
+\begin{equation}
+\frac{\partial J}{\partial b} = \frac{2}{m} \sum_{i=1}^{m} (\hat{y}_i-y_i)
+\end{equation}
+
+A diferencia del gradiente de los pesos, en este caso no se multiplica el error por ninguna característica. Esto se debe a que la derivada de la hipótesis respecto al \textit{bias} es igual a $1$.
+
+\subsubsection{Actualización de los parámetros}
+Una vez calculados los gradientes, los parámetros del modelo son actualizados mediante el algoritmo de Descenso de Gradiente. La actualización de cada peso se realiza mediante:
+
+\begin{equation}
+w_j^{nuevo} = w_j-\alpha \frac{\partial J}{\partial w_j}
+\end{equation}
+
+Mientras que el \textit{bias} se actualiza mediante:
+
+\begin{equation}
+b^{nuevo} = b-\alpha \frac{\partial J}{\partial b}
+\end{equation}
+
+donde $\alpha$ representa la tasa de aprendizaje (\textit{learning rate}).
+\newline
+El signo negativo es fundamental, ya que el gradiente indica la dirección de mayor incremento de la función de costo. Por lo tanto, se avanza en la dirección contraria para buscar un mínimo de la función.
+
+\subsubsection{Proceso de entrenamiento}
+
+Las funciones anteriores se integraron en un ciclo de entrenamiento. En cada época se realizan las siguientes operaciones:
+
+\begin{enumerate}
+    \item Generar las predicciones utilizando los parámetros actuales.
+    \item Calcular la función de costo.
+    \item Obtener el gradiente de cada peso.
+    \item Obtener el gradiente del \textit{bias}.
+    \item Actualizar todos los pesos.
+    \item Actualizar el \textit{bias}.
+    \item Guardar el costo obtenido para analizar la evolución del modelo.
+\end{enumerate}
+
+
+\subsection{Uso de los conjuntos de entrenamiento, validación y prueba}
+
+Para evaluar el comportamiento del modelo se utilizaron tres conjuntos de datos: \textit{train}, \textit{validation} y \textit{test}.
+
+El conjunto de \textit{train} es el único utilizado para modificar los pesos y el \textit{bias}. En cada época, el algoritmo calcula los gradientes a partir de este conjunto y actualiza los parámetros.
+\newline
+El conjunto de \textit{validation} no participa en la actualización de los parámetros. Después de cada época, se utilizan los parámetros obtenidos hasta ese momento para generar predicciones sobre el conjunto de validación y calcular su correspondiente función de costo. Esto permite observar cómo generaliza el modelo sobre datos que no fueron utilizados directamente para actualizar sus parámetros.
+\newline
+Finalmente, el conjunto de \textit{test} se mantiene separado durante el proceso de entrenamiento. Una vez finalizado el entrenamiento, se utilizan los parámetros finales del modelo para generar predicciones sobre este conjunto y obtener una evaluación final del desempeño.
+\newline
+Esta separación permite distinguir entre el desempeño sobre los datos utilizados para aprender y el desempeño sobre datos que el modelo no utilizó para ajustar sus parámetros.
+
+\subsubsection{Monitoreo del aprendizaje y detección de \textit{overfitting}}
+
+Para observar el comportamiento del modelo durante el entrenamiento se almacena la función de costo correspondiente a cada época. Posteriormente, se pueden representar las curvas de costo de \textit{train} y \textit{validation} en una misma gráfica.
+
+La finalidad principal de esta comparación es detectar un posible \textit{overfitting}. Si el costo de entrenamiento continúa disminuyendo mientras que el costo de validación comienza a incrementarse, esto indicaría que el modelo está ajustándose progresivamente a las características particulares de los datos de entrenamiento y perdiendo capacidad de generalización.
+
+Por el contrario, si ambos costos disminuyen de manera similar y permanecen relativamente cercanos, se tendría evidencia de un comportamiento de generalización más estable.
+
+El conjunto de \textit{test} no se utiliza para este monitoreo durante las épocas, sino únicamente para realizar la evaluación final del modelo.
+
+\subsubsection{Implementación de Mini-Batch}
+
+Debido al tamaño del conjunto de datos, se decidió utilizar el \textit{Descenso de Gradiente por Mini-Batch}. El conjunto de entrenamiento contiene aproximadamente 9.8 millones de observaciones, por lo que calcular los gradientes utilizando todos los datos antes de cada actualización requeriría un tiempo de cómputo considerable.
+\newline
+El uso de mini-lotes permite dividir este proceso en grupos pequeños y realizar actualizaciones más frecuentes de los parámetros. De esta manera, se reduce la cantidad de datos procesados en cada actualización y se mejora el tiempo de entrenamiento sin utilizar únicamente una observación a la vez, lo que proporciona un proceso de aprendizaje más estable que el \textit{Stochastic Gradient Descent}.
+\newline
+Para esta implementación se utilizó un tamaño de lote de 256 observaciones. En cada época, el conjunto de entrenamiento se divide en estos lotes y, después de procesar cada uno, se actualizan los pesos y el \textit{bias}. Al finalizar la época, se calcula el costo promedio de los lotes procesados para monitorear la evolución del modelo.
+\newline
+La principal razón para utilizar esta técnica fue, por tanto, hacer viable el entrenamiento del modelo sobre un conjunto de datos de 10 millones de registros, reduciendo el costo computacional de cada actualización.
+
+\subsection{Resultados de este primer modelo}
 
 
 
@@ -254,6 +436,15 @@ A continuación, se vuelven a dejar todas las figuras que contienen gráficos en
 	\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_month.png}
 \end{figure}
 
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/depdelay_histogram.png}
+\end{figure}
+
+\begin{figure}[h!]
+	\centering
+	\includegraphics[width=\linewidth]{../graficas/correlation_matrix.png}
+\end{figure}
 
 \newpage
 \section{Códigos}
