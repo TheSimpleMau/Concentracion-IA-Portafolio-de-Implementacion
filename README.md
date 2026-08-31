@@ -1,4 +1,4 @@
-# Regresión Lineal sin Frameworks — Predicción de Retrasos en Vuelos
+# Regresión Lineal — Predicción de Retrasos en Vuelos
 
 **Autor:** Mauricio Olguín Sánchez
 **Matrícula:** A01711522
@@ -7,10 +7,7 @@
 
 Implementación manual de un modelo de regresión lineal entrenado con Descenso de Gradiente por Mini-Batch, para predecir el retraso en la salida de vuelos (`DepDelay`) a partir de variables de horarios y distancia.
 
-Incluye el pipeline completo de ETL, un análisis exploratorio de datos (EDA) y la evaluación del modelo mediante MSE y $R^2$ sobre conjuntos de train, validation y test.
-
-> Esta es la primera entrega del proyecto (modelo implementado "a mano"). La segunda parte,
-> usando frameworks de Machine Learning, está pendiente.
+> En esta primera entrega, aún no se ha implementado el modelo con el uso de Frameworks.
 
 ## Reporte
 
