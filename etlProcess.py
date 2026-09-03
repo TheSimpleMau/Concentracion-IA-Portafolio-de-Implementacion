@@ -25,10 +25,7 @@ def extract_data():
         print("Saltando transformación de los datos. Ya se han sido limpiados.")
         return df, True
 
-def transform_data(df:pd.DataFrame):
-    print("\nExcluyendo columnas UniqueCarrier, Origin y Dest")
-    
-    df = df.drop(columns=["UniqueCarrier", "Origin", "Dest"])
+def transform_data(df: pd.DataFrame):
 
     print("\nConvirtiendo CRSDepTime y CRSArrTime a minutos desde la medianoche...")
 
@@ -37,40 +34,85 @@ def transform_data(df:pd.DataFrame):
 
     print("Conversión realizada.")
 
-    print("Datos generales:")
-
+    print("\nDatos generales:")
     print(df.info())
     print(df.describe())
-    print("Cantidad de valores nulos:")
+
+    print("\nCantidad de valores nulos:")
     print(df.isna().sum())
-    print("Nota: No existen valores nulos :D")
 
-    print("Aplicando One Hot Encoding para columnas DayOfWeek, DayofMonth y Month...")
-    dummies = pd.get_dummies(df[["DayOfWeek", "DayofMonth", "Month"]],columns=["DayOfWeek", "DayofMonth", "Month"],dtype=int)
-    df = pd.concat([df, dummies], axis=1)
-    print("One Hot Encoding aplicado.")
+    # Algunas versiones del lector ARFF pueden devolver strings
+    # como bytes. Los convertimos a strings normales.
+    categorical_columns = [
+        "UniqueCarrier",
+        "Origin",
+        "Dest"
+    ]
 
+    for column in categorical_columns:
+        if column in df.columns:
+            df[column] = df[column].astype(str)
 
-    print("Guardando datos en formato parquet para tener una carga más rápida en futuras pruebas...")
-    df.to_parquet("airlines_10M.parquet", engine="pyarrow")
+    print("\nVariables categóricas conservadas:")
+    print(categorical_columns)
+
+    print(
+        "\nNOTA: One-Hot Encoding y normalización "
+        "serán realizados dentro de frameworkModel.py"
+    )
+
+    print("\nGuardando datos en formato parquet...")
+
+    df.to_parquet(
+        "airlines_10M.parquet",
+        engine="pyarrow"
+    )
+
     print("Datos en parquet guardados.")
 
     return df
 
-def split_data(df:pd.DataFrame):
-    df = df.sample(frac=1).reset_index(drop=True)
+def split_data(df: pd.DataFrame):
+
+    # Usamos una semilla para que las pruebas sean reproducibles.
+    df = df.sample(
+        frac=1,
+        random_state=42
+    ).reset_index(drop=True)
+
     Yvalues = df["DepDelay"]
-    Xvalues = df.drop(columns=["DepDelay", "DayOfWeek", "DayofMonth", "Month"])
+
+    # Solamente eliminamos el target.
+    Xvalues = df.drop(
+        columns=["DepDelay"]
+    )
+
     df_len = len(df)
-    # Al ser un gran tamaño de datos, dividiré los datos 98/1/1
-    Xtrain = Xvalues[0:(df_len*98)//100]
-    Xvalidation = Xvalues[(df_len*98)//100:(df_len*99)//100]
-    Xtest = Xvalues[(df_len*99)//100::]
-    ytrain = Yvalues[0:(df_len*98)//100]
-    yvalidation = Yvalues[(df_len*98)//100:(df_len*99)//100]
-    ytest = Yvalues[(df_len*99)//100::]
-    # Regreso también el dataset completo para realizar gráficas en caso de ser necesario
-    return df, Xtrain, Xvalidation, Xtest, ytrain, yvalidation, ytest
+
+    # 98% train
+    # 1% validation
+    # 1% test
+
+    train_end = (df_len * 98) // 100
+    validation_end = (df_len * 99) // 100
+
+    Xtrain = Xvalues[:train_end]
+    Xvalidation = Xvalues[train_end:validation_end]
+    Xtest = Xvalues[validation_end:]
+
+    ytrain = Yvalues[:train_end]
+    yvalidation = Yvalues[train_end:validation_end]
+    ytest = Yvalues[validation_end:]
+
+    return (
+        df,
+        Xtrain,
+        Xvalidation,
+        Xtest,
+        ytrain,
+        yvalidation,
+        ytest
+    )
 
 
 def normalize_data(X_train: pd.DataFrame, X_val: pd.DataFrame, X_test: pd.DataFrame):

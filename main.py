@@ -1,5 +1,4 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 
 from plotUtil import *
 from etlProcess import *
@@ -11,6 +10,7 @@ def initial_graphs(df:pd.DataFrame):
     mean_delay_by_month(df)
     mean_delay_by_week(df)
     correlation_matrix(df)
+
 
 def etl_process():
     # ETL
@@ -26,20 +26,10 @@ def etl_process():
     print("Datos separados en train (98%), validation (1%) y test (1%)")
     print("Normalizando las columnas CRSDepTime, CRSArrTime y Distance...")
     Xtrain_norm, Xvalidation_norm, Xtest_norm = normalize_data(Xtrain, Xvalidation, Xtest)
-
     return df, Xtrain_norm, Xvalidation_norm, Xtest_norm, ytrain, yvalidation, ytest
 
 
-def main():
-    # ETL
-    df, Xtrain_norm, Xvalidation_norm, Xtest_norm, ytrain, yvalidation, ytest = etl_process()
-
-    _plot_graps = False # cambiar a True en caso de querer graficar
-    if _plot_graps:
-        print("Graficando parte análisis...")
-        initial_graphs(df)
-        print("Finalizando graficas iniciales.")
-
+def manual_model(Xtrain_norm, Xvalidation_norm, Xtest_norm, ytrain, yvalidation, ytest):
     # Datos a utilizar.
     # Nota: Esto sólo es para realizar pruebas rápidas por el tamaño del dataset.
     # Al final, data_percentage debe de valer 1.0 = 100% de los datos.
@@ -114,27 +104,23 @@ def main():
 
     # Gráfica de predicción vs. real
     predicted_vs_actual(test_y, test_predictions, test_r2, dataset_name="Test")
+    cost_evolution(train_costs, validation_costs, train_r2, validation_r2, test_r2)
 
 
-    # Gráfica de training y validation
-    plt.figure(figsize=(10, 6))
-    plt.plot(range(1, len(train_costs) + 1), train_costs, label="Training")
-    plt.plot(range(1, len(validation_costs) + 1), validation_costs, label="Validation")
-    plt.xlabel("Época")
-    plt.ylabel("MSE")
-    plt.title("Evolución del error durante el entrenamiento")
-    r2_text = (f"$R^2$ train: {train_r2:.4f}\n" f"$R^2$ validation: {validation_r2:.4f}\n" f"$R^2$ test: {test_r2:.4f}")
-    plt.gca().text(
-        0.98, 0.95, r2_text,
-        transform=plt.gca().transAxes,
-        ha="right", va="top",
-        fontsize=10,
-        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8)
-    )
-    plt.legend()
-    plt.grid()
-    plt.tight_layout()
-    plt.savefig("./graficas/cost_evolution.png", dpi=DPI)
+def main():
+    # ETL
+    df, Xtrain_norm, Xvalidation_norm, Xtest_norm, ytrain, yvalidation, ytest = etl_process()
+
+    _plot_graps = False # cambiar a True en caso de querer graficar
+    if _plot_graps:
+        print("Graficando parte análisis...")
+        initial_graphs(df)
+        print("Finalizando graficas iniciales.")
+
+    manual_model(Xtrain_norm, Xvalidation_norm, Xtest_norm, ytrain, yvalidation, ytest)
+
+    
+
 
 
 

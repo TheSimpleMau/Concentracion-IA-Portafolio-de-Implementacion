@@ -101,3 +101,23 @@ def predicted_vs_actual(y_real: list, y_pred: list, r2: float, dataset_name="Tes
     plt.tight_layout()
     plt.savefig(f"./graficas/predicted_vs_actual_{dataset_name.lower()}.png", dpi=DPI)
     plt.close()
+
+def cost_evolution(train_costs, validation_costs, train_r2, validation_r2, test_r2):
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(1, len(train_costs) + 1), train_costs, label="Training")
+    plt.plot(range(1, len(validation_costs) + 1), validation_costs, label="Validation")
+    plt.xlabel("Época")
+    plt.ylabel("MSE")
+    plt.title("Evolución del error durante el entrenamiento")
+    r2_text = (f"$R^2$ train: {train_r2:.4f}\n" f"$R^2$ validation: {validation_r2:.4f}\n" f"$R^2$ test: {test_r2:.4f}")
+    plt.gca().text(
+        0.98, 0.95, r2_text,
+        transform=plt.gca().transAxes,
+        ha="right", va="top",
+        fontsize=10,
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.8)
+    )
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig("./cost_evolution.png", dpi=DPI)
