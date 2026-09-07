@@ -1,4 +1,5 @@
 import math
+import random
 from tqdm import tqdm # Para crear una barra de progreso al momento de entrenar el modelo
 
 def hypo(params: list, weights: list, bias: float) -> float:
@@ -72,7 +73,8 @@ def train_step(weights:list, bias:float, params:list, y:list, lr:float):
     return new_weights, new_bias, current_cost
 
 def train(params:list, y:list, validation_params:list, validation_y:list, lr:float, epochs:int, batch_size:int):
-    weights = [0 for _ in range(len(params[0]))]
+    # weights = [0 for _ in range(len(params[0]))]
+    weights = [random.random() for _ in range(len(params[0]))]
     bias = 0
     train_costs = []
     validation_costs = []
@@ -114,3 +116,43 @@ def train(params:list, y:list, validation_params:list, validation_y:list, lr:flo
         validation_costs.append(validation_cost)
         
     return weights, bias, train_costs, validation_costs
+
+
+def run_regression_model(X_train,y_train,X_val,y_val,X_test,y_test,learning_rate=0.1,epochs=20,batch_size=2048):
+    params = X_train.values.tolist()
+    train_y = y_train.tolist()
+    validation_params = X_val.values.tolist()
+    validation_y = y_val.tolist()
+    test_params = X_test.values.tolist()
+    test_y = y_test.tolist()
+
+    weights, bias, train_costs, validation_costs = train(params, train_y, validation_params, validation_y, learning_rate, epochs, batch_size)
+
+    train_predictions = predict(params, weights, bias)
+    validation_predictions = predict(validation_params, weights, bias)
+    test_predictions = predict(test_params, weights, bias)
+    predictions = {
+        "train": train_predictions,
+        "val": validation_predictions,
+        "test": test_predictions,
+        "y_train": train_y,
+        "y_val": validation_y,
+        "y_test": test_y
+    }
+
+    history = {
+        "epoch": list(range(1,len(train_costs) + 1)),
+        "train_mse": train_costs,
+        "val_mse": validation_costs
+    }
+
+    model = {
+        "type": "manual_linear_regression",
+        "weights": weights,
+        "bias": bias,
+        "learning_rate": learning_rate,
+        "epochs": epochs,
+        "batch_size": batch_size
+    }
+
+    return model, predictions, history
