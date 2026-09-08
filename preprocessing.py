@@ -4,26 +4,21 @@ TARGET_COLUMN = "DepDelay"
 CATEGORICAL_COLUMNS = [
     "UniqueCarrier",
     "Origin",
-    "Dest"
+    "Dest",
 ]
 
 
 def _validate_sample_fraction(sample_fraction):
     if not 0 < sample_fraction <= 1:
-        raise ValueError(
-            "sample_fraction debe estar entre 0 y 1."
-        )
+        raise ValueError("sample_fraction debe estar entre 0 y 1.")
 
 
 def _sample_dataframe(df: pd.DataFrame, sample_fraction: float):
-
     samples = int(len(df) * sample_fraction)
-
     if samples <= 0:
-        raise ValueError(
-            "sample_fraction produce 0 observaciones."
-        )
-    return df.iloc[:samples].copy()
+        raise ValueError("sample_fraction produce 0 observaciones.")
+    # return df.sample(frac=sample_fraction, random_state=42)
+    return df
 
 
 def _fit_one_hot_encoding(train_df: pd.DataFrame, categorical_columns):
@@ -33,7 +28,7 @@ def _fit_one_hot_encoding(train_df: pd.DataFrame, categorical_columns):
 
 def _apply_one_hot_encoding(df: pd.DataFrame, train_columns,categorical_columns):
     encoded = pd.get_dummies(df, columns=categorical_columns, dtype="float32")
-    encoded = encoded.reindex(columns=train_columns, fill_value=0)
+    encoded = encoded.reindex(columns=train_columns)
     return encoded
 
 
@@ -90,7 +85,6 @@ def prepare_model_data(train_df: pd.DataFrame, val_df: pd.DataFrame, test_df: pd
             X_train = _fit_one_hot_encoding(X_train,categorical_columns)
             train_columns = X_train.columns
             X_val = _apply_one_hot_encoding(X_val, train_columns, categorical_columns)
-
             X_test = _apply_one_hot_encoding(X_test, train_columns, categorical_columns)
 
     if normalize:

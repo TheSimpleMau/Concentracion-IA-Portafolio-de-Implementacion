@@ -16,7 +16,7 @@ def train_random_forest(X_train, y_train, X_val, y_val, n_estimators=500, **rf_k
     }
     params.update(rf_kwargs)
 
-    model = RandomForestRegressor(**params)
+    model = RandomForestRegressor(**params, verbose=1)
     checkpoints = sorted(
         set(
             max(

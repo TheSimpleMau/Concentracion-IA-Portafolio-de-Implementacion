@@ -1,7 +1,7 @@
 from xgboost import XGBRegressor
 
 
-def train_xgboost(X_train, y_train, X_val, y_val, n_estimators=1000, early_stopping_rounds=30, **xgb_kwargs):
+def train_xgboost(X_train, y_train, X_val, y_val, n_estimators=1000, **xgb_kwargs):
     params = {
         "n_estimators": n_estimators,
         "max_depth": 8,
@@ -10,26 +10,18 @@ def train_xgboost(X_train, y_train, X_val, y_val, n_estimators=1000, early_stopp
         "colsample_bytree": 0.8,
         "min_child_weight": 5,
         "tree_method": "hist",
+        "eval_metric": "rmse",
+        "objective": "reg:pseudohubererror",
         "n_jobs": -1,
         "random_state": 42
     }
     params.update(xgb_kwargs)
 
-    model = XGBRegressor(**params, early_stopping_rounds=early_stopping_rounds)
-    model.fit(X_train, y_train, eval_set=[ (X_train, y_train), (X_val, y_val)], verbose=False)
+    model = XGBRegressor(**params)
+    model.fit(X_train, y_train, eval_set=[ (X_train, y_train), (X_val, y_val)], verbose=100)
     results = model.evals_result()
     history = {
-        "iteration": list(
-            range(
-                1,
-                len(
-                    results[
-                        "validation_0"
-                    ]["rmse"]
-                ) + 1
-            )
-        ),
-
+        "iteration": list(range(1,len(results["validation_0"]["rmse"]) + 1)),
         "train_rmse": results["validation_0"]["rmse"],
         "val_rmse": results["validation_1"]["rmse"],
         "best_iteration": getattr(model,"best_iteration",None)

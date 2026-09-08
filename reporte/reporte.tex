@@ -471,9 +471,13 @@ Aunque no podemos graficar una compración entre los valores $X$ vs $Y$ junto co
 
 Cabe mencionar que, para esta primera implementación, el conjunto de \textit{validation} únicamente se utilicó con fines de monitoreo. Esto con la intención de verificar que el modelo generaliza de forma consistente y descartar \textit{overfitting}, más que para una selección de hiperparámetro, la cuál se abordará en el siguiente capítulo.
 
-\chapter{Modelo con \textit{frameworks}}
+\chapter{Modelo con \textit{frameworks}: Random Forest}
 
-TBD
+\section{Mejora en el tratamiento de los datos}
+
+En un principio, decidí no utilizar las columnas \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} porque, para el modelo inicial, no valía la pena realizar un \textit{One Hot Encoding} para que, al final, tuvieran el modelo tardase más tiempo en realizar su entrenamiento y no aportar información necesaria. Sin embargo, ahora decidí reestructurar un poco el tratamiento de estos datos.
+
+\subsection{De \textit{One Hot Encoding} a \textit{Target Encoding}}
 
 \onecolumn
 

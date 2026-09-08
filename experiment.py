@@ -1,7 +1,3 @@
-# ============================================================
-# experiment.py
-# ============================================================
-
 from etlProcess import extract_data, transform_data, split_data
 from preprocessing import prepare_model_data
 
@@ -9,7 +5,7 @@ from regresionModel import run_regression_model
 from randomForestModel import run_random_forest
 from xgboostModel import run_xgboost
 
-from evaluation import evaluate_all_splits, create_comparison_dataframe
+from evaluation import evaluate_all_splits, create_comparison_dataframe, create_diagnostic_dataframe, print_diagnostic_summary
 
 from experimentStorage import save_experiment
 
@@ -39,13 +35,13 @@ def initial_graphs(df):
 def run_experiment():
 
     # ========================================================
-    # CONFIGURACIÓN
+    # Configuración
     # ========================================================
 
     config = {
-        "sample_fraction": 0.01,
+        "sample_fraction": 0.25,
 
-        "run_manual": True,
+        "run_manual": False,
         "run_random_forest": True,
         "run_xgboost": True,
 
@@ -54,27 +50,43 @@ def run_experiment():
         "generate_comparison_graphs": True,
 
         "manual": {
-            "learning_rate": 0.1,
+            "learning_rate": 0.01,
             "epochs": 20,
             "batch_size": 2048
         },
 
         "random_forest": {
-            "n_estimators": 500,
-            "max_depth": None,
-            "min_samples_leaf": 20,
-            "max_features": 0.7
+            "n_estimators":50,
+            "max_depth":12,
+            "min_samples_leaf":20,
+            "min_samples_split":40,
+            "max_features":0.5,
+            "bootstrap":True,
+            "max_samples":0.5,
+            "n_jobs":2,
+            "random_state":42,
+            "criterion":"squared_error",
+            # "n_estimators": 50,
+            # "max_depth": 20,
+            # "min_samples_split": 10,
+            # "min_samples_leaf": 10,
+            # "max_features": 0.7,
+            # "bootstrap": True,
+            # "max_samples": 0.7,
+            # "n_jobs": -1,
+            # "random_state": 42,
+            # "criterion": "squared_error"
         },
 
         "xgboost": {
-            "n_estimators": 1000,
-            "max_depth": 8,
+            "n_estimators": 50,
+            "max_depth": 20,
             "learning_rate": 0.001,
             "subsample": 0.8,
             "colsample_bytree": 0.8,
             "min_child_weight": 5,
             "reg_lambda": 1.0,
-            "early_stopping_rounds": 30
+            "early_stopping_rounds": 100
         }
     }
 
@@ -99,6 +111,11 @@ def run_experiment():
     print(f"Train:      {len(train_df):,}")
     print(f"Validation: {len(val_df):,}")
     print(f"Test:       {len(test_df):,}")
+
+    print(f"\nProporcion separada ({config["sample_fraction"] * 100}%) :")
+    print(f"Train:      {len(train_df) * config["sample_fraction"]:,}")
+    print(f"Validation: {len(val_df) * config["sample_fraction"]:,}")
+    print(f"Test:       {len(test_df) * config["sample_fraction"]:,}")
 
     # ========================================================
     # Gráficas básicas
@@ -214,7 +231,7 @@ def run_experiment():
             xgb_cost_evolution(xgb_history["train_rmse"], xgb_history["val_rmse"], xgb_history["best_iteration"])
 
     # ========================================================
-    # VALIDACIÓN
+    # Validación
     # ========================================================
 
     if not model_results:
@@ -223,7 +240,7 @@ def run_experiment():
         return
 
     # ========================================================
-    # COMPARACIÓN
+    # Comparación
     # ========================================================
 
     comparison = create_comparison_dataframe(
@@ -238,7 +255,15 @@ def run_experiment():
     print(comparison.to_string(index=False))
 
     # ========================================================
-    # GRÁFICAS COMPARATIVAS
+    # Diagnóstico validation / test
+    # ========================================================
+
+    diagnostic = create_diagnostic_dataframe(model_results)
+
+    print_diagnostic_summary(model_results)
+
+    # ========================================================
+    # Gráficas comparativas
     # ========================================================
 
     if config["generate_comparison_graphs"]:
@@ -268,9 +293,9 @@ def run_experiment():
     experiment_data = {
         "config": config,
         "metrics": model_results,
-        "predictions": model_predictions,
         "histories": model_histories,
         "comparison": comparison,
+        "diagnostic": diagnostic,
         "models": trained_models
     }
 

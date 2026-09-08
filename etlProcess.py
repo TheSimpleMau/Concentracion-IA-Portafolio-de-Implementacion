@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import numpy as np
 from scipy.io import arff
 
 
@@ -47,7 +48,6 @@ def transform_data(df: pd.DataFrame):
     print("\nConvirtiendo CRSDepTime y CRSArrTime a minutos desde la medianoche...")
 
     df["CRSDepTime"] = (df["CRSDepTime"].apply(hhmm_to_minutes))
-
     df["CRSArrTime"] = (df["CRSArrTime"].apply(hhmm_to_minutes))
 
     categorical_columns = [
@@ -55,6 +55,19 @@ def transform_data(df: pd.DataFrame):
         "Origin",
         "Dest"
     ]
+    
+    cyclical_features = {
+        "Month": 12.0,
+        "DayofMonth": 31.0,
+        "DayOfWeek": 7.0
+    }
+
+    for col, max_val in cyclical_features.items():
+        if col in df.columns:
+            df[col] = df[col].astype(float)
+            df[f"{col}_sin"] = np.sin(2 * np.pi * df[col] / max_val)
+            df[f"{col}_cos"] = np.cos(2 * np.pi * df[col] / max_val)
+            df.drop(columns=[col], inplace=True)
 
     for column in categorical_columns:
         if column in df.columns:
