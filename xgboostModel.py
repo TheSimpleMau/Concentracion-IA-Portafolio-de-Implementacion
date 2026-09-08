@@ -11,7 +11,7 @@ def train_xgboost(X_train, y_train, X_val, y_val, n_estimators=1000, **xgb_kwarg
         "min_child_weight": 5,
         "tree_method": "hist",
         "eval_metric": "rmse",
-        "objective": "reg:pseudohubererror",
+        "objective": "reg:squarederror",
         "n_jobs": -1,
         "random_state": 42
     }
@@ -30,15 +30,20 @@ def train_xgboost(X_train, y_train, X_val, y_val, n_estimators=1000, **xgb_kwarg
     return model, history
 
 
-def predict(model, X_train, X_val, X_test):
-    return {
+def predict(model, X_train, X_val, X_test=None):
+    predictions = {
         "train": model.predict(X_train),
         "val": model.predict(X_val),
-        "test": model.predict(X_test)
     }
+    if X_test is not None:
+        predictions["test"] = model.predict(X_test)
+    return predictions
 
 
-def run_xgboost(X_train, y_train, X_val, y_val, X_test, y_test, n_estimators=1000, early_stopping_rounds=30, **xgb_kwargs):
+def run_xgboost(X_train, y_train, X_val, y_val, X_test=None, y_test=None, n_estimators=1000, early_stopping_rounds=30, **xgb_kwargs):
+    if (X_test is None) != (y_test is None):
+        raise ValueError("X_test y y_test deben proporcionarse juntos.")
+
     model, history = train_xgboost(X_train, y_train, X_val, y_val,
                                 n_estimators=n_estimators,
                                 early_stopping_rounds=early_stopping_rounds, **xgb_kwargs)
@@ -47,7 +52,8 @@ def run_xgboost(X_train, y_train, X_val, y_val, X_test, y_test, n_estimators=100
     predictions.update({
         "y_train": y_train.tolist(),
         "y_val": y_val.tolist(),
-        "y_test": y_test.tolist()
     })
+    if y_test is not None:
+        predictions["y_test"] = y_test.tolist()
 
     return model, predictions, history

@@ -72,9 +72,10 @@ def train_step(weights:list, bias:float, params:list, y:list, lr:float):
     new_weights, new_bias = update(weights, bias, gradients, bias_gradient, lr)
     return new_weights, new_bias, current_cost
 
-def train(params:list, y:list, validation_params:list, validation_y:list, lr:float, epochs:int, batch_size:int):
+def train(params:list, y:list, validation_params:list, validation_y:list, lr:float, epochs:int, batch_size:int, random_state:int=42):
     # weights = [0 for _ in range(len(params[0]))]
-    weights = [random.random() for _ in range(len(params[0]))]
+    rng = random.Random(random_state)
+    weights = [rng.random() for _ in range(len(params[0]))]
     bias = 0
     train_costs = []
     validation_costs = []
@@ -98,7 +99,7 @@ def train(params:list, y:list, validation_params:list, validation_y:list, lr:flo
             # Entrenamos sólo con este lote.
             weights, bias, batch_cost = train_step(weights, bias, batch_params, batch_y, lr)
             # Sumamos el costo del lote para sacar el promedio después
-            epoch_train_cost += batch_cost
+            epoch_train_cost += batch_cost * len(batch_y)
             # Actualizar barra de progreso
             pbar.update(1)
             pbar.set_postfix({
@@ -107,7 +108,7 @@ def train(params:list, y:list, validation_params:list, validation_y:list, lr:flo
             })
             
         # Costo promedio de entrenamiento de toda la época
-        epoch_train_cost /= num_batches
+        epoch_train_cost /= m
         train_costs.append(epoch_train_cost)
         
         # Evaluamos en validación
@@ -115,35 +116,40 @@ def train(params:list, y:list, validation_params:list, validation_y:list, lr:flo
         validation_cost = cost(validation_predictions, validation_y)
         validation_costs.append(validation_cost)
         
+    pbar.close()
     return weights, bias, train_costs, validation_costs
 
 
-def run_regression_model(X_train,y_train,X_val,y_val,X_test,y_test,learning_rate=0.1,epochs=20,batch_size=2048):
+def run_regression_model(X_train,y_train,X_val,y_val,X_test=None,y_test=None,learning_rate=0.1,epochs=20,batch_size=2048,random_state=42):
     params = X_train.values.tolist()
     train_y = y_train.tolist()
     validation_params = X_val.values.tolist()
     validation_y = y_val.tolist()
-    test_params = X_test.values.tolist()
-    test_y = y_test.tolist()
+    if (X_test is None) != (y_test is None):
+        raise ValueError("X_test y y_test deben proporcionarse juntos.")
 
-    weights, bias, train_costs, validation_costs = train(params, train_y, validation_params, validation_y, learning_rate, epochs, batch_size)
+    weights, bias, train_costs, validation_costs = train(params, train_y, validation_params, validation_y, learning_rate, epochs, batch_size, random_state)
 
     train_predictions = predict(params, weights, bias)
     validation_predictions = predict(validation_params, weights, bias)
-    test_predictions = predict(test_params, weights, bias)
     predictions = {
         "train": train_predictions,
         "val": validation_predictions,
-        "test": test_predictions,
         "y_train": train_y,
         "y_val": validation_y,
-        "y_test": test_y
     }
+
+    if X_test is not None:
+        test_params = X_test.values.tolist()
+        test_y = y_test.tolist()
+        predictions["test"] = predict(test_params, weights, bias)
+        predictions["y_test"] = test_y
 
     history = {
         "epoch": list(range(1,len(train_costs) + 1)),
         "train_mse": train_costs,
-        "val_mse": validation_costs
+        "val_mse": validation_costs,
+        "train_mse_kind": "online_during_updates"
     }
 
     model = {
@@ -152,7 +158,8 @@ def run_regression_model(X_train,y_train,X_val,y_val,X_test,y_test,learning_rate
         "bias": bias,
         "learning_rate": learning_rate,
         "epochs": epochs,
-        "batch_size": batch_size
+        "batch_size": batch_size,
+        "random_state": random_state
     }
 
     return model, predictions, history

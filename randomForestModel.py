@@ -48,15 +48,20 @@ def train_random_forest(X_train, y_train, X_val, y_val, n_estimators=500, **rf_k
     return model, checkpoints, train_mse_history, val_mse_history
 
 
-def predict(model, X_train, X_val, X_test):
-    return {
+def predict(model, X_train, X_val, X_test=None):
+    predictions = {
         "train": model.predict(X_train),
         "val": model.predict(X_val),
-        "test": model.predict(X_test)
     }
+    if X_test is not None:
+        predictions["test"] = model.predict(X_test)
+    return predictions
 
 
-def run_random_forest(X_train, y_train, X_val, y_val, X_test, y_test, n_estimators=500, **rf_kwargs):
+def run_random_forest(X_train, y_train, X_val, y_val, X_test=None, y_test=None, n_estimators=500, **rf_kwargs):
+    if (X_test is None) != (y_test is None):
+        raise ValueError("X_test y y_test deben proporcionarse juntos.")
+
     model, estimators, train_mse_history, val_mse_history = train_random_forest(X_train, y_train, X_val, y_val,
                                                                                 n_estimators=n_estimators,
                                                                                 **rf_kwargs)
@@ -65,8 +70,9 @@ def run_random_forest(X_train, y_train, X_val, y_val, X_test, y_test, n_estimato
     predictions.update({
         "y_train": y_train.tolist(),
         "y_val": y_val.tolist(),
-        "y_test": y_test.tolist()
     })
+    if y_test is not None:
+        predictions["y_test"] = y_test.tolist()
 
     history = {
         "estimators": estimators,

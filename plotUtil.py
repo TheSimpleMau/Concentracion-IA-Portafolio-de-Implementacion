@@ -4,21 +4,26 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-DPI = 900 # Resolución final de los gráficos
+DPI = 300
 
 def ensure_graphics_directory():
     os.makedirs("./graficas", exist_ok=True)
 
 def correlation_matrix(df: pd.DataFrame):
-    columns = [
+    candidate_columns = [
         "DepDelay",
-        "Month",
-        "DayofMonth",
-        "DayOfWeek",
         "CRSDepTime",
         "CRSArrTime",
-        "Distance"
+        "Distance",
+        "Month_sin",
+        "Month_cos",
+        "DayofMonth_sin",
+        "DayofMonth_cos",
+        "DayOfWeek_sin",
+        "DayOfWeek_cos",
     ]
+    columns = [column for column in candidate_columns if column in df.columns]
+    ensure_graphics_directory()
     corr = df[columns].corr()
     plt.figure(figsize=(9, 7))
     plt.imshow(corr, cmap="coolwarm", vmin=-1, vmax=1)
@@ -35,6 +40,7 @@ def correlation_matrix(df: pd.DataFrame):
 
 
 def delays_hist(df:pd.DataFrame):
+    ensure_graphics_directory()
     plt.figure(figsize=(10, 6))
     bins = int(np.sqrt(len(df)))
     plt.hist(df["DepDelay"], bins=100, range=(-25, 150)) 
@@ -46,7 +52,9 @@ def delays_hist(df:pd.DataFrame):
 
 
 def mean_delay_by_month(df: pd.DataFrame):
-    monthly_mean = df.groupby("Month")["DepDelay"].mean()
+    ensure_graphics_directory()
+    month = _temporal_values(df, "Month", 12)
+    monthly_mean = df.assign(Month=month).groupby("Month")["DepDelay"].mean()
     plt.figure(figsize=(10, 6))
     plt.plot(monthly_mean.index, monthly_mean.values, marker="o")
     plt.xlabel("Mes")
@@ -59,7 +67,9 @@ def mean_delay_by_month(df: pd.DataFrame):
 
 
 def mean_delay_by_week(df: pd.DataFrame):
-    weekly_mean = df.groupby("DayOfWeek")["DepDelay"].mean()
+    ensure_graphics_directory()
+    day_of_week = _temporal_values(df, "DayOfWeek", 7)
+    weekly_mean = df.assign(DayOfWeek=day_of_week).groupby("DayOfWeek")["DepDelay"].mean()
     plt.figure(figsize=(10, 6))
     plt.plot(weekly_mean.index, weekly_mean.values, marker="o")
     plt.xlabel("Día de la semana")
@@ -72,6 +82,7 @@ def mean_delay_by_week(df: pd.DataFrame):
 
 
 def mean_delay_by_hour(df: pd.DataFrame):
+    ensure_graphics_directory()
     temp = df.copy()
     temp["Hour"] = (temp["CRSDepTime"] // 60).astype(int)
     hourly_mean = temp.groupby("Hour")["DepDelay"].mean()
@@ -85,18 +96,29 @@ def mean_delay_by_hour(df: pd.DataFrame):
     plt.savefig("./graficas/mean_depdelay_by_hour.png", dpi=DPI)
     plt.close()
 
+
+def _temporal_values(df: pd.DataFrame, column: str, period: int):
+    """Recupera la categoría temporal desde su par seno/coseno si hace falta."""
+    if column in df.columns:
+        return df[column]
+
+    sin_column = f"{column}_sin"
+    cos_column = f"{column}_cos"
+    if sin_column not in df.columns or cos_column not in df.columns:
+        raise ValueError(
+            f"No se encontró {column} ni el par {sin_column}/{cos_column}."
+        )
+
+    angles = np.mod(np.arctan2(df[sin_column], df[cos_column]), 2 * np.pi)
+    values = np.rint(angles * period / (2 * np.pi)).astype(int)
+    return values.where(values != 0, period)
+
 def pair_plot(df:pd.DataFrame):
     print(df)
     df = df.iloc[::, 0:7]
     sns.pairplot(df, hue="DayOfWeek").savefig("./graficas/pair_plot.png", dpi=DPI)
 
-def predicted_vs_actual(
-    y_real,
-    y_pred,
-    r2,
-    dataset_name="Test",
-    max_points=20000
-):
+def predicted_vs_actual(y_real, y_pred, r2, dataset_name="Test", max_points=20000):
     """
     Predicción vs realidad.
 
@@ -131,21 +153,18 @@ def predicted_vs_actual(
         y_real_plot.min(),
         y_pred_plot.min()
     )
-
     max_value = max(
         y_real_plot.max(),
         y_pred_plot.max()
     )
 
     plt.figure(figsize=(8, 8))
-
     plt.hexbin(
         y_real_plot,
         y_pred_plot,
         gridsize=60,
         mincnt=1
     )
-
     plt.plot(
         [min_value, max_value],
         [min_value, max_value],
@@ -153,28 +172,20 @@ def predicted_vs_actual(
         linewidth=2,
         label="Predicción perfecta"
     )
-
     plt.xlabel("Retraso real (minutos)")
     plt.ylabel("Retraso predicho (minutos)")
-
     plt.title(
         f"Predicción vs. Real ({dataset_name})\n"
         f"R² = {r2:.4f}"
     )
-
     plt.colorbar(label="Número de observaciones")
-
     plt.legend()
-
     plt.grid(alpha=0.2)
-
     plt.tight_layout()
-
     plt.savefig(
         f"./graficas/predicted_vs_actual_{dataset_name.lower()}.png",
         dpi=DPI
     )
-
     plt.close()
 
 
@@ -245,125 +256,86 @@ def xgb_cost_evolution(train_rmse: list, val_rmse: list, best_iteration: int = N
     plt.close()
 
 
-def residual_plot(
-    y_real,
-    y_pred,
-    dataset_name="Test",
-    max_points=20000
-):
+def residual_plot(y_real, y_pred, dataset_name="Test", max_points=20000):
     """
     Residuales = predicción - realidad.
     """
-
     ensure_graphics_directory()
 
     y_real = np.asarray(y_real)
     y_pred = np.asarray(y_pred)
-
     residuals = y_pred - y_real
 
     if len(y_pred) > max_points:
-
         rng = np.random.default_rng(42)
-
         indices = rng.choice(
             len(y_pred),
             size=max_points,
             replace=False
         )
-
         y_plot = y_pred[indices]
         residuals_plot = residuals[indices]
-
     else:
-
         y_plot = y_pred
         residuals_plot = residuals
 
     plt.figure(figsize=(10, 6))
-
     plt.hexbin(
         y_plot,
         residuals_plot,
         gridsize=70,
         mincnt=1
     )
-
     plt.axhline(
         0,
         linestyle="--",
         linewidth=2,
         label="Error = 0"
     )
-
     plt.xlabel("Retraso predicho (minutos)")
     plt.ylabel("Residual (predicho - real)")
-
     plt.title(
         f"Residuales vs. predicción ({dataset_name})"
     )
-
     plt.colorbar(label="Número de observaciones")
-
     plt.legend()
-
     plt.grid(alpha=0.2)
-
     plt.tight_layout()
-
     plt.savefig(
         f"./graficas/residuals_{dataset_name.lower()}.png",
         dpi=DPI
     )
-
     plt.close()
 
 
-def error_distribution(
-    y_real,
-    y_pred,
-    dataset_name="Test"
-):
-    """
-    Distribución de errores.
-    """
-
+def error_distribution(y_real, y_pred, dataset_name="Test"):
     ensure_graphics_directory()
 
     y_real = np.asarray(y_real)
     y_pred = np.asarray(y_pred)
-
     errors = y_pred - y_real
 
     plt.figure(figsize=(10, 6))
-
     plt.hist(
         errors,
         bins=100
     )
-
     plt.axvline(
         0,
         linestyle="--",
         linewidth=2
     )
-
     plt.xlabel("Error (predicción - realidad)")
     plt.ylabel("Frecuencia")
-
     plt.title(
         f"Distribución de errores ({dataset_name})"
     )
-
     plt.grid(alpha=0.2)
-
     plt.tight_layout()
-
     plt.savefig(
         f"./graficas/error_distribution_{dataset_name.lower()}.png",
         dpi=DPI
     )
-
     plt.close()
 
 

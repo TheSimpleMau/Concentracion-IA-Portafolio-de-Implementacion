@@ -1,47 +1,40 @@
 import math
+import numpy as np
 import pandas as pd
 
 
 def regression_metrics(y_real, y_pred, tolerances=(5, 10, 15, 30)):
-    n = len(y_real)
+    real = np.asarray(y_real, dtype=np.float64).reshape(-1)
+    pred = np.asarray(y_pred, dtype=np.float64).reshape(-1)
+
+    if len(real) != len(pred):
+        raise ValueError(
+            "y_real y y_pred deben tener la misma cantidad de observaciones."
+        )
+
+    n = len(real)
     if n == 0:
         raise ValueError("No hay observaciones para evaluar.")
 
-    errors = []
-    squared_errors = []
-    absolute_errors = []
+    if not np.all(np.isfinite(real)) or not np.all(np.isfinite(pred)):
+        raise ValueError("Las métricas no aceptan valores NaN o infinitos.")
 
-    for real, pred in zip(y_real, y_pred):
-
-        current_error = (pred - real)
-        errors.append(current_error)
-        squared_errors.append(current_error ** 2)
-        absolute_errors.append(abs(current_error))
-
-    mse = (sum(squared_errors)/ n)
+    errors = pred - real
+    absolute_errors = np.abs(errors)
+    mse = float(np.mean(np.square(errors)))
     rmse = math.sqrt(mse)
-    mae = (sum(absolute_errors)/ n)
-    mean_real = (sum(y_real)/ n)
-    ss_res = 0.0
-    ss_tot = 0.0
-
-    for real, pred in zip(y_real,y_pred):
-        ss_res += (real - pred) ** 2
-        ss_tot += (real - mean_real) ** 2
+    mae = float(np.mean(absolute_errors))
+    mean_real = float(np.mean(real))
+    ss_res = float(np.sum(np.square(real - pred)))
+    ss_tot = float(np.sum(np.square(real - mean_real)))
 
     if ss_tot == 0:
-        r2 = 0.0
+        r2 = 1.0 if ss_res == 0 else 0.0
     else:
         r2 = (1 - ss_res / ss_tot)
 
-    mean_error = (sum(errors)/ n)
-    sorted_abs_errors = sorted(absolute_errors)
-
-    middle = n // 2
-    if n % 2 == 0:
-        median_absolute_error = (sorted_abs_errors[middle - 1] + sorted_abs_errors[middle]) / 2
-    else:
-        median_absolute_error = (sorted_abs_errors[middle])
+    mean_error = float(np.mean(errors))
+    median_absolute_error = float(np.median(absolute_errors))
 
     metrics = {
         "mse": mse,
@@ -53,13 +46,14 @@ def regression_metrics(y_real, y_pred, tolerances=(5, 10, 15, 30)):
         }
 
     for tolerance in tolerances:
-        count = sum(1 for absolute_error in absolute_errors if absolute_error <= tolerance)
-        metrics[f"within_{tolerance}"] = (count / n) * 100
+        metrics[f"within_{tolerance}"] = float(
+            np.mean(absolute_errors <= tolerance) * 100
+        )
 
     return metrics
 
 
-def evaluate_all_splits(y_train, train_pred, y_val, val_pred, y_test, test_pred):
+def evaluate_all_splits(y_train, train_pred, y_val, val_pred, y_test=None, test_pred=None):
     splits = {
         "train": (
             y_train,
@@ -68,12 +62,13 @@ def evaluate_all_splits(y_train, train_pred, y_val, val_pred, y_test, test_pred)
         "val": (
             y_val,
             val_pred
-        ),
-        "test": (
-            y_test,
-            test_pred
         )
     }
+
+    if (y_test is None) != (test_pred is None):
+        raise ValueError("y_test y test_pred deben proporcionarse juntos.")
+    if y_test is not None:
+        splits["test"] = (y_test, test_pred)
 
     metrics = {}
 
@@ -85,37 +80,37 @@ def evaluate_all_splits(y_train, train_pred, y_val, val_pred, y_test, test_pred)
     return metrics
 
 
-def create_comparison_dataframe(results: dict):
+def create_comparison_dataframe(results: dict, split="test"):
     rows = []
     for model_name, metrics in results.items():
         rows.append({
             "modelo": model_name,
             "MAE": metrics.get(
-                "test_mae"
+                f"{split}_mae"
             ),
             "RMSE": metrics.get(
-                "test_rmse"
+                f"{split}_rmse"
             ),
             "R2": metrics.get(
-                "test_r2"
+                f"{split}_r2"
             ),
             "MedAE": metrics.get(
-                "test_median_absolute_error"
+                f"{split}_median_absolute_error"
             ),
             "±5 min": metrics.get(
-                "test_within_5"
+                f"{split}_within_5"
             ),
             "±10 min": metrics.get(
-                "test_within_10"
+                f"{split}_within_10"
             ),
             "±15 min": metrics.get(
-                "test_within_15"
+                f"{split}_within_15"
             ),
             "±30 min": metrics.get(
-                "test_within_30"
+                f"{split}_within_30"
             ),
             "Bias": metrics.get(
-                "test_mean_error"
+                f"{split}_mean_error"
             )
         })
     return pd.DataFrame(rows)
@@ -125,13 +120,13 @@ def create_comparison_dataframe(results: dict):
 # Diagnóstico validation / test
 
 def _safe_ratio(numerator, denominator):
-    if denominator == 0:
+    if numerator is None or denominator is None or denominator == 0:
         return None
     return numerator / denominator
 
 
 def _percentage_change(reference, value):
-    if reference == 0:
+    if reference is None or value is None or reference == 0:
         return None
     return ((value - reference) / abs(reference)) * 100
 
@@ -220,12 +215,14 @@ def print_diagnostic_summary(results: dict):
             f"R²: {metrics['val_r2']:.4f}"
         )
 
-        print(
-            f"  Test       -> "
-            f"MAE: {metrics['test_mae']:.4f} | "
-            f"RMSE: {metrics['test_rmse']:.4f} | "
-            f"R²: {metrics['test_r2']:.4f}"
-        )
+        has_test = "test_rmse" in metrics
+        if has_test:
+            print(
+                f"  Test       -> "
+                f"MAE: {metrics['test_mae']:.4f} | "
+                f"RMSE: {metrics['test_rmse']:.4f} | "
+                f"R²: {metrics['test_r2']:.4f}"
+            )
 
         val_train_rmse = _percentage_change(
             metrics["train_rmse"],
@@ -254,37 +251,38 @@ def print_diagnostic_summary(results: dict):
             f"{metrics['val_r2'] - metrics['train_r2']:+.4f}"
         )
 
-        test_val_rmse = _percentage_change(
-            metrics["val_rmse"],
-            metrics["test_rmse"]
-        )
+        if has_test:
+            test_val_rmse = _percentage_change(
+                metrics["val_rmse"],
+                metrics["test_rmse"]
+            )
 
-        test_val_mae = _percentage_change(
-            metrics["val_mae"],
-            metrics["test_mae"]
-        )
+            test_val_mae = _percentage_change(
+                metrics["val_mae"],
+                metrics["test_mae"]
+            )
 
-        test_val_r2 = (
-            metrics["test_r2"]
-            - metrics["val_r2"]
-        )
+            test_val_r2 = (
+                metrics["test_r2"]
+                - metrics["val_r2"]
+            )
 
-        print("\n[ Validation → Test ]")
+            print("\n[ Validation → Test ]")
 
-        print(
-            f"  Cambio RMSE: "
-            f"{test_val_rmse:+.2f}%"
-        )
+            print(
+                f"  Cambio RMSE: "
+                f"{test_val_rmse:+.2f}%"
+            )
 
-        print(
-            f"  Cambio MAE:  "
-            f"{test_val_mae:+.2f}%"
-        )
+            print(
+                f"  Cambio MAE:  "
+                f"{test_val_mae:+.2f}%"
+            )
 
-        print(
-            f"  Cambio R²:   "
-            f"{test_val_r2:+.4f}"
-        )
+            print(
+                f"  Cambio R²:   "
+                f"{test_val_r2:+.4f}"
+            )
 
         print("\n[ Bias ]")
 
@@ -298,10 +296,11 @@ def print_diagnostic_summary(results: dict):
             f"{metrics['val_mean_error']:+.4f}"
         )
 
-        print(
-            f"  Test       : "
-            f"{metrics['test_mean_error']:+.4f}"
-        )
+        if has_test:
+            print(
+                f"  Test       : "
+                f"{metrics['test_mean_error']:+.4f}"
+            )
 
         print("\n[ Predicciones dentro de tolerancia ]")
 
@@ -309,28 +308,35 @@ def print_diagnostic_summary(results: dict):
             val_percentage = metrics[
                 f"val_within_{tolerance}"
             ]
-            test_percentage = metrics[
-                f"test_within_{tolerance}"
-            ]
-            difference = (
-                test_percentage
-                - val_percentage
-            )
-            print(
-                f"  ±{tolerance:2d} minutos -> "
-                f"Validation: {val_percentage:6.2f}% | "
-                f"Test: {test_percentage:6.2f}% | "
-                f"Δ: {difference:+.2f}%"
-            )
+            if has_test:
+                test_percentage = metrics[
+                    f"test_within_{tolerance}"
+                ]
+                difference = (
+                    test_percentage
+                    - val_percentage
+                )
+                print(
+                    f"  ±{tolerance:2d} minutos -> "
+                    f"Validation: {val_percentage:6.2f}% | "
+                    f"Test: {test_percentage:6.2f}% | "
+                    f"Δ: {difference:+.2f}%"
+                )
+            else:
+                print(
+                    f"  ±{tolerance:2d} minutos -> "
+                    f"Validation: {val_percentage:6.2f}%"
+                )
 
         print("\n[ Error absoluto mediano ]")
         print(
             f"  Validation : "
             f"{metrics['val_median_absolute_error']:.4f}"
         )
-        print(
-            f"  Test       : "
-            f"{metrics['test_median_absolute_error']:.4f}"
-        )
+        if has_test:
+            print(
+                f"  Test       : "
+                f"{metrics['test_median_absolute_error']:.4f}"
+            )
 
     print("\n" + "=" * 70)

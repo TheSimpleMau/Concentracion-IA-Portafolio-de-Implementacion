@@ -243,11 +243,16 @@ Sin embargo, si se quiciera obtener más datos actuales, habría que descargarlo
 
 \subsubsection{Sobre los atributos \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek}}
 
-Las variables \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek}, aunque se encuentran representadas numéricamente en el conjunto de datos, las trataré como variables categóricas. Esto se debe a que, en realidad, los valores numéricos representan categorías y no implican necesariamente una relación lineal entre ellas. Por ejemplo, el mes representado por el valor 12 no debe interpretarse como una categoría doce veces mayor que el mes representado por el valor 1.
+Las variables \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek} se almacenan como números, pero describen ciclos. Por ello, no conviene introducirlas directamente como cantidades lineales: diciembre y enero, o domingo y lunes, son periodos consecutivos aunque sus códigos numéricos se encuentren en extremos opuestos. En el procesamiento actual cada variable $x$ se sustituye por un par de componentes:
+
+\begin{align*}
+x_{\sin} &= \sin\left(\frac{2\pi x}{P}\right), &
+x_{\cos} &= \cos\left(\frac{2\pi x}{P}\right),
+\end{align*}
+
+donde $P$ vale 12 para el mes, 31 para el día del mes y 7 para el día de la semana. Esta codificación conserva la cercanía entre los extremos de cada ciclo y produce seis predictores numéricos. En el caso del día del mes se utiliza un periodo fijo de 31 días, por lo que la representación es una aproximación para los meses más cortos.
 \newline
-Para representar estas variables dentro del modelo de regresión, utilizaré la técnica de \textit{One-Hot Encoding}. Aunque esto implicará que creesca la dimensionalidad del conjunto de datos.
-\newline
-En contraste, las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} son explícitamente categóricas, pero serán excluidas del modelo. Su transformación (utilizando la misma técnica de antes) produciría un incremento considerablemente mayor en la cantidad de variables. Princpialmente, tomo esta decisión con el objetivo de mantener un tiempo de ejecución razonable y centrar el proyecto en la implementación manual del algoritmo de regresión.
+Las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} se excluyen únicamente del modelo manual para conservar una implementación manejable con listas y ciclos. En los modelos construidos con \textit{frameworks} sí se incorporan mediante una codificación categórica ajustada exclusivamente con los datos de entrenamiento.
 
 \subsubsection{Sobre los atributos \textit{CRSDepTime} y \textit{CRSArrTime}}
 
@@ -255,13 +260,15 @@ Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas pr
 \newline
 Sin embargo, esta representación no es adecuada para ser procesada de forma directa por un modelo de regresión lineal. El formato HHMM introduce discontinuidades matemáticas artificiales debido a los cambios de hora. Por ejemplo, los valores 1059 (10:59) y 1100 (11:00) tienen una separación temporal real de apenas 1 minuto; no obstante, si el modelo consume los datos en su formato original, interpretará una distancia matemática de 41 unidades. Esta magnitud falsa distorsiona los gradientes durante el entrenamiento, asumiendo una separación temporal mucho mayor a la real.
 \newline
-Para corregir este desajuste y linealizar la variable, se transformaron ambos atributos utilizando como referencia la medianoche absoluta. Para ello, se separaron las horas y los minutos del valor original y se aplicó la siguiente ecuación:
+Antes de la conversión se valida que ambos atributos representen una hora posible: deben ser enteros, contener horas entre 0 y 23 y minutos entre 0 y 59. El valor 2400 se admite como una representación especial de medianoche y se transforma en 0. Si cualquiera de los dos horarios de una observación es inválido, la observación completa se elimina. Esta revisión encontró un único registro con \textit{CRSArrTime}=2096; al no existir evidencia para reconstruir su valor correcto, se eliminó en lugar de imputarlo.
+\newline
+Después de la validación, se separaron las horas y los minutos y se aplicó la siguiente ecuación:
 
 \begin{equation*}
 	\text{Minutos}_{\text{desde la media noche}} = 60 \times \text{Hora} + \text{Minutos}
 \end{equation*}
 
-Esta transformación garantiza que, la distancia numérica entre cualquier par de horas, refleja entonces con exactitud la distancia real. 1059 se convierte en 659 y 1100 en 660, logrando la diferencia exacta de 1 unidad. Además, se mantinene la jerarquía de los horarios a lo largo del día en un especto entre 0 a 1439.
+Así, 1059 se convierte en 659 y 1100 en 660. La transformación elimina la discontinuidad aritmética propia del formato HHMM y coloca los horarios en el intervalo de 0 a 1439 minutos. No debe interpretarse como la duración de un vuelo: las horas son locales y la diferencia entre salida y llegada también puede atravesar la medianoche o zonas horarias distintas.
 
 \subsubsection{Sobre el formato del archivo de los datos}
 
@@ -271,7 +278,11 @@ Al informarme que esta integración me resultaería óptima para poder realizar 
 
 \subsection{\textit{Loading}}
 
-Una vez hechas las transformaciones anteriores, ahora dividí el tamaño de mi \textit{dataset} en tres principales secciones: \textit{train}, \textit{validation} y \textit{test}. Al ser la cantidad de datos tan alta, podría realizar varias particiones para \textit{validation}, sin embargo, en esta primera parte en donde me enfoco aprender el algoritmo, sólo haré una ves esta división. Así pues, utilizaré una proporcion de 98\% de los datos para \textit{train}, 1\% para \textit{validation} y 1\% para \textit{test}.~\cite{ml4devsTrainingValidation}
+Después de eliminar la observación inválida quedaron 9,999,999 registros. El objetivo de esta evaluación es estimar el desempeño sobre vuelos pertenecientes a la misma población histórica, no simular el pronóstico de un periodo futuro. Además, el conjunto disponible no contiene el año ni una fecha completa que permita construir y justificar un corte cronológico. Por estas razones, antes de dividir los datos se aplica una permutación reproducible con semilla 42.
+\newline
+La división conserva 98\% de los datos para \textit{train}, 1\% para \textit{validation} y 1\% para \textit{test}: 9,799,999, 99,999 y 100,001 observaciones, respectivamente. La diferencia de una observación se debe al redondeo de las proporciones enteras. Los tres conjuntos son disjuntos.~\cite{ml4devsTrainingValidation}
+\newline
+En las pruebas parciales, la fracción de muestreo se aplica solamente a \textit{train}. Los conjuntos de \textit{validation} y \textit{test} permanecen completos para que sus métricas sean estables y comparables entre ejecuciones. \textit{Train} se utiliza para ajustar los parámetros; \textit{validation}, para comparar configuraciones; y \textit{test} queda reservado para una sola evaluación una vez elegido el modelo y congelados sus hiperparámetros.
 
 \section{\textit{Exploratoy Data Analysis}}
 
@@ -279,7 +290,7 @@ Hice un primer acercamiento general a los datos simplemente realizando un gráfi
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/pair_plot_jupyter.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/pair_plot_jupyter.png"}
 	\caption{\textit{Pair plot} para visualizar la mayoría de los datos comparados entre sí. No se graficaron los 10 millones de puntos por el tiempo de computo requerido, sólo se graficaron un millon. Se añadió también que, para cada punto, se etiquetara por su el día de la semana (\textit{DayOfWeek}) para intentar de visualizar algúna zona de interes así como la distribución de los mismos.}
 	\label{fig:pairplot}
 \end{figure}
@@ -291,17 +302,17 @@ Ahora que tenemos el panorama general de los datos, podría pasar a realizar gr�
 \begin{figure}[h!]
 	\centering
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_hour.png}
+		\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_hour.png"}
 		\caption{Promedios de retrasos por cada hora.}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_weekly.png}
+		\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_weekly.png"}
 		\caption{Promedios de retrasos por cada día de la semana.}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_month.png}
+		\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_month.png"}
 		\caption{Promedios de retrasos por cada mes.}
 	\end{subfigure}
 	\caption{Promedios de retrasos por periodos de tiempos.}
@@ -320,7 +331,7 @@ Sin embargo, es importante destacar que estos valores podrían estar altamente a
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/depdelay_histogram.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/depdelay_histogram.png"}
 	\caption{Histograma con retrasos en los vuelos. \textbf{NOTA:} La escala de este histograma se ha recortado de $-25$ a $150$. Esto debido a que los \textit{outliers} (tanto positivos como negativos) son tan grandes y muy pocos que reducen mucho la visibilidad de la gran mayoría de los datos.} 
 	\label{fig:hist-depdelay}
 \end{figure}
@@ -331,7 +342,7 @@ Por último, el gráfico más interesante en donde podemos comparar y darnos cue
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/correlation_matrix.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/correlation_matrix.png"}
 	\caption{Matriz de correlación.} 
 	\label{fig:correlation-matrix}
 \end{figure}
@@ -354,11 +365,11 @@ Por estas razones, y para resolver específicamente la diferencia de magnitudes,
 
 \subsection{Normalización de los datos}
 
-El algoritmo a utilizar para la normalización de los datos será \textit{Min-Max}:
+Para la normalización se utiliza el método \textit{Min-Max}:
 $$X_{norm} = \frac{X - X_{min}}{X_{max} - X_{min}}$$
-Gracias a este algoritmo, lograremos poner en una escla del 0 a 1 todos nuestros datos y, como ya se ha dicho anteriromente, durante la aplicación del \textit{Descenso del Gradiente} converja más rápido.
+Esta transformación coloca las variables utilizadas durante el ajuste dentro de una escala común y facilita la convergencia del descenso de gradiente.
 \newline
-Hay que tener cuidado a qué variables les aplicamos la noramlización de los datos pues no es necesarios hacerlo para todas las variables. Además, la normalización se debe de hacer con respecto a los datos de entrenamiento, pero aplicarselo a todos los conjuntos de datos (\textit{test} y \textit{validation}). Como anteriormente he aplicado un \textit{One Hot Encoding} para las variables temporales, entonces, las úncias columanas a las que se les aplicará la normalización serán a \textit{CRSDepTime}, \textit{CRSArrTime} y \textit{Distance}.
+Los valores mínimo y máximo se calculan únicamente con \textit{train}; posteriormente, esos mismos parámetros se aplican a \textit{validation} y \textit{test}. De esta forma se evita que información de los conjuntos de evaluación intervenga en la preparación del modelo. En la implementación manual se normalizan sus nueve predictores numéricos: \textit{CRSDepTime}, \textit{CRSArrTime}, \textit{Distance} y los seis componentes seno y coseno de las variables de calendario. Si una columna de entrenamiento es constante, se sustituye por cero en los tres conjuntos para evitar una división entre cero.
 
 \subsection{Implementación del modelo}
 
@@ -420,16 +431,16 @@ donde $\alpha$ representa la tasa de aprendizaje (\textit{learning rate}). El si
 
 \subsubsection{Entrenamiento por mini-batch}
 
-Debido a que el conjunto de entrenamiento contiene aproximadamente 9.8 millones de observaciones, calcular los gradientes utilizando todos los datos antes de cada actualización resultaba computacionalmente costos. Por ello se utilizó \textit{Mini-Batch Gradient Descent}, dividiendo el conjunto de entrenamiento en lotes de 2048 observaciones. Esto permite actualizar los parámetros varias veces por época utilizando solo una fracción de los datos en cada paso, logrando un balance entre el costo computacional de usar todos los datos a la vez y la inestabilidad de actualizar con una sola observación.
+Debido a que el conjunto completo de entrenamiento contiene aproximadamente 9.8 millones de observaciones, calcular los gradientes utilizando todos los datos antes de cada actualización resultaría costoso. Por ello se utilizó \textit{Mini-Batch Gradient Descent}, dividiendo las observaciones seleccionadas para cada experimento en lotes de 2048. Esto permite actualizar los parámetros varias veces por época y mantiene explícitos los ciclos y listas de la implementación manual.
 \newline
-Durante cada época se recorren todos los lotes, repitiendo para cada uno ciclo lo siguiente:
+Durante cada época se recorren todos los lotes, repitiendo para cada uno el ciclo siguiente:
 
 \begin{enumerate}
 	\item Se realiza una predicción.
 	\item Se calcula el error.
 	\item Calculamos el costo.
 	\item Calculamos los gradientes.
-	\item Actualiamos $w$ y $b$.
+	\item Actualizamos $w$ y $b$.
 	\item Al terminar la época, se promedia el costo de entrenamiento entre todos los lotes.
 \end{enumerate}
 
@@ -441,43 +452,99 @@ El conjunto de \textit{test} se mantiene completamente al margen durante el entr
 
 \subsection{Resultados del modelo}
 
-Para el entrenamiento del modelo, utilicé los siguiente parametros:
+La ejecución actual del modelo manual utilizó 25\% del conjunto de entrenamiento, equivalente a 2,449,999 observaciones. Los conjuntos de \textit{validation} y \textit{test} conservaron sus 99,999 y 100,001 observaciones. La configuración fue la siguiente:
 
 \begin{itemize}
 	\item $learning\; rate = 0.01$
-	\item $epochs = 10$
+	\item $epochs = 20$
 	\item $batch\; size = 2048$
+	\item $random\; state = 42$
 \end{itemize}
 
-Graficando la evolución del \textit{MSE} por cada epoca, resultó en lo siguiente:
+La inicialización de los pesos y el muestreo son reproducibles mediante la misma semilla. La curva de entrenamiento registra el costo observado mientras los parámetros se actualizan a lo largo de cada época; por ello funciona como un indicador de convergencia, pero no es exactamente el MSE del modelo final calculado sobre todo \textit{train}. Las métricas finales sí se obtienen después del entrenamiento con un único conjunto de parámetros.
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/cost_evolution.png}
-	\caption{Evolución del \textit{Mean Squared Error} por cada epoca.}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/cost_evolution.png"}
+	\caption{Evolución del MSE de entrenamiento y validación. La imagen de respaldo se conserva de manera provisional hasta generar la figura definitiva con el protocolo actualizado.}
 	\label{fig:evo-mse}
 \end{figure}
 
-El modelo alcanzó un $R^2$ de 0.0217 en el conjunto de \textit{train}, valor consistente con la baja correlación lienal observada desde el \textit{EDA} en la matriz de correlación (ver figura \ref{fig:correlation-matrix}), donde la correlación máxima llegaba a 0.12. Además, podemos observar claramente que tenemos un problema de \textit{underfitting} en nuestro modelo. Esto confirma que la limitación no proviene de un error en el pipline de datos ni en la implementación del algoritmo, sino de la naturaleza no lineal del fenómeno de retrasos en los vuelvos, que una sola neurona no puede capturar más allá de esta cota.
+Las métricas obtenidas con la partición aleatoria actual fueron:
+
+\begin{table}[h!]
+	\centering
+	\small
+	\begin{tabular}{lrrr}
+		\hline
+		Conjunto & MAE & RMSE & $R^2$ \\
+		\hline
+		\textit{Train} & 14.2309 & 29.1068 & 0.0170 \\
+		\textit{Validation} & 14.2080 & 28.4182 & 0.0192 \\
+		\textit{Test} & --- & --- & --- \\
+		\hline
+	\end{tabular}
+	\caption{Resultados del modelo manual. El conjunto de prueba permanece reservado.}
+	\label{tab:manual-results}
+\end{table}
+
+El RMSE de entrenamiento es mayor que el de validación, pero esto no significa que el modelo funcione mejor con datos desconocidos. La dispersión de \textit{DepDelay} es ligeramente mayor en \textit{train} y el RMSE es especialmente sensible a los retrasos extremos. Para estudiar generalización resulta más útil observar que el MAE cambia sólo 0.0229 minutos y que $R^2$ permanece cercano en ambos conjuntos. La cercanía de estas métricas no aporta evidencia de sobreajuste en esta partición, aunque tampoco compensa la reducida capacidad explicativa del modelo.
 \newline
-Aunque no podemos graficar una compración entre los valores $X$ vs $Y$ junto con los $X$ vs $\hat{Y}$, porque la dimensión de las variables predictorias es mayor a 3, un gráfico interesante podría ser comprar $Y$ vs $\hat{Y}$ y $Y$ con ella misma. De esta forma, podemos visualizar de forma sencilla si es que realmente los datos que se está prediciendo son realmente los que deberían de ser. El resultado de hacer esto es el siguiente (ver figura \ref{fig:predict_vs_actual}):
+Los valores de $R^2$ indican que la regresión lineal explica aproximadamente 1.7\% de la variabilidad de \textit{train} y 1.9\% de la variabilidad de \textit{validation}. En combinación con la pequeña diferencia entre ambos conjuntos, este comportamiento es compatible con un modelo de alto sesgo: la relación lineal y las variables disponibles capturan una porción reducida del fenómeno. Sin embargo, un $R^2$ bajo no demuestra por sí solo que el fenómeno completo sea no lineal ni permite descartar errores de modelado; también influye la ausencia de variables operacionales, meteorológicas y de congestión.
+\newline
+El error absoluto mediano de validación fue de 9.2830 minutos. El 22.90\% de las predicciones quedó a menos de 5 minutos del valor real; el 54.38\%, a menos de 10; el 79.18\%, a menos de 15; y el 92.87\%, a menos de 30. Estas proporciones muestran que el modelo aproxima la zona central de la distribución, pero pierde precisión cuando se exige un margen estrecho.
+\newline
+El sesgo medio fue de $-0.0687$ minutos en entrenamiento y $-0.0651$ en validación, valores cercanos a cero. Esto indica que los errores positivos y negativos se compensan en promedio, pero no implica que el modelo esté bien calibrado para todas las magnitudes. La diferencia entre MAE y RMSE indica la presencia de una cola de errores grandes. La gráfica de respaldo ilustra el patrón que deberá comprobarse con la figura definitiva: predicciones concentradas en un intervalo estrecho y subestimación de los retrasos extremos.
+\newline
+La comparación entre el retraso real y el predicho permite visualizar esta limitación (figura \ref{fig:predict_vs_actual}). La línea diagonal representa una predicción perfecta; la concentración horizontal de puntos muestra que el modelo cambia poco su salida incluso cuando el retraso real aumenta.
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_test.png}
-	\caption{Valor predicho contra el actual. La linea recta sería el resultado ideal, mientras que todos los puntos azules son los resultados que el modelo predijo vs el real.\\ \textbf{NOTA:} Los datos reales tendrían que abarcar desde aproximadamente desde -1000 hasta 1000, pero esto sería devido a los outliers. Por lo que no vale la pena graficar en un rango tan grande y mejor visualizar los datos realmente predecido.}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/predicted_vs_actual_test.png"}
+	\caption{Retraso predicho contra retraso real. La diagonal representa la predicción perfecta. Esta imagen corresponde a una ejecución anterior y se conserva provisionalmente como referencia visual; sus métricas no se mezclan con las de la tabla \ref{tab:manual-results}.}
 	\label{fig:predict_vs_actual}
 \end{figure}
 
-Cabe mencionar que, para esta primera implementación, el conjunto de \textit{validation} únicamente se utilicó con fines de monitoreo. Esto con la intención de verificar que el modelo generaliza de forma consistente y descartar \textit{overfitting}, más que para una selección de hiperparámetro, la cuál se abordará en el siguiente capítulo.
+El conjunto de \textit{test} no aparece todavía en la tabla porque las métricas de ejecuciones anteriores se calcularon con una partición y un procedimiento de muestreo distintos. Reutilizarlas produciría una comparación inconsistente. En el protocolo actualizado, \textit{test} no se consulta durante el ajuste ni durante la selección entre modelos; se evaluará una sola vez después de fijar la configuración final. Por lo tanto, su función actual es proporcionar una estimación independiente al cierre del experimento, no confirmar decisiones tomadas con \textit{validation}.
 
-\chapter{Modelo con \textit{frameworks}: Random Forest}
+\chapter{Modelos con \textit{frameworks}: Random Forest y XGBoost}
 
 \section{Mejora en el tratamiento de los datos}
 
-En un principio, decidí no utilizar las columnas \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} porque, para el modelo inicial, no valía la pena realizar un \textit{One Hot Encoding} para que, al final, tuvieran el modelo tardase más tiempo en realizar su entrenamiento y no aportar información necesaria. Sin embargo, ahora decidí reestructurar un poco el tratamiento de estos datos.
+En la implementación manual se excluyeron \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} para mantener manejable el costo de trabajar explícitamente con listas y ciclos. Los modelos basados en árboles pueden aprovechar estas variables para representar diferencias entre aerolíneas, aeropuertos y rutas, por lo que se incorporaron en esta segunda etapa.
 
-\subsection{De \textit{One Hot Encoding} a \textit{Target Encoding}}
+\subsection{Codificación de las variables categóricas}
+
+Las tres variables categóricas se transforman mediante \textit{One-Hot Encoding}. El codificador se ajusta exclusivamente con \textit{train}; después se aplica sin reajuste a \textit{validation} y, cuando corresponda, a \textit{test}. Una categoría que no se haya observado durante el ajuste se representa mediante ceros, evitando errores o valores faltantes.
+\newline
+La matriz resultante contiene 772 predictores en la ejecución actual. Para reducir el uso de memoria se almacena como una matriz dispersa de números de 32 bits, de modo que sólo se conservan explícitamente las posiciones distintas de cero. Tanto Random Forest como XGBoost reciben la misma muestra de entrenamiento y los mismos conjuntos completos de validación, por lo que su comparación se realiza bajo condiciones equivalentes.
+
+\section{Evaluación preliminar de los modelos}
+
+Como primera comparación se utilizó 25\% de \textit{train}, equivalente a 2,449,999 observaciones, y las 99,999 observaciones completas de \textit{validation}. El conjunto de \textit{test} no se consultó. Los resultados fueron:
+
+\begin{table}[h!]
+	\centering
+	\small
+	\begin{tabular}{lrrr}
+		\hline
+		Modelo & MAE & RMSE & $R^2$ \\
+		\hline
+		Random Forest & 13.9477 & 28.1167 & 0.0399 \\
+		XGBoost & 14.0285 & 28.1780 & 0.0357 \\
+		\hline
+	\end{tabular}
+	\caption{Resultados preliminares sobre el conjunto de validación.}
+	\label{tab:framework-preliminary}
+\end{table}
+
+Random Forest obtuvo el menor RMSE, pero la diferencia fue de sólo 0.0613 minutos, equivalente aproximadamente a 0.22\% respecto a XGBoost. Esta ventaja es demasiado pequeña para cerrar la selección. La curva de Random Forest se estabilizó entre 30 y 50 árboles, mientras que XGBoost continuó reduciendo el error al alcanzar el límite de 50 iteraciones. Por esta razón se programó una prueba más exigente: en Random Forest se aumentará moderadamente la capacidad de los árboles y en XGBoost se permitirá un mayor número de rondas con detención temprana.
+\newline
+La selección se realizará mediante el RMSE de \textit{validation}, utilizando $R^2$, MAE, tiempo de entrenamiento y tamaño del modelo como información complementaria. Si las diferencias permanecen dentro de un margen de 0.5\%, se considerará que los modelos presentan un empate práctico y se preferirá el de menor costo computacional. Los hiperparámetros se congelarán antes de habilitar la evaluación de \textit{test}.
+\newline
+Los resultados también muestran una limitación compartida: ambos modelos concentran sus predicciones en retrasos moderados y subestiman los eventos extremos. Los trabajos revisados sobre predicción de retrasos incorporan variables como clima, congestión aeroportuaria, estado de la red y causas operacionales~\cite{kalliguddi2017,rebollo2014,li2021,manna2017}. Estas variables no están disponibles en el conjunto utilizado, por lo que no sería correcto atribuir toda la diferencia con esos trabajos al algoritmo o esperar reproducir sus métricas únicamente mediante ajuste de hiperparámetros.
+\newline
+El método RFR-MIC propuesto por Guo et al. combina Random Forest con selección de variables y aprovecha información de múltiples rutas~\cite{guo2021}. Aunque sus métricas no son directamente comparables por utilizar otro conjunto de datos, el trabajo sugiere una revisión posterior de la importancia y redundancia de los predictores. Esta revisión debe realizarse dentro de \textit{train} y después de la comparación definitiva, para no convertir el conjunto de validación en una fuente indirecta de ajuste.
 
 \onecolumn
 
@@ -488,42 +555,42 @@ A continuación, se vuelven a dejar todas las figuras que contienen gráficos en
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/pair_plot_jupyter.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/pair_plot_jupyter.png"}
 \end{figure}
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_hour.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_hour.png"}
 \end{figure}
 \hfill
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_weekly.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_weekly.png"}
 \end{figure}
 \hfill
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/mean_depdelay_by_month.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_month.png"}
 \end{figure}
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/depdelay_histogram.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/depdelay_histogram.png"}
 \end{figure}
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/correlation_matrix.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/correlation_matrix.png"}
 \end{figure}
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/cost_evolution.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/cost_evolution.png"}
 \end{figure}
 
 \begin{figure}[h!]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_test.png}
+	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/predicted_vs_actual_test.png"}
 \end{figure}
 
 \chapter{Códigos}
