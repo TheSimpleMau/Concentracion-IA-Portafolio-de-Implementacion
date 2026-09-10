@@ -35,7 +35,7 @@ def initial_graphs(df):
 def run_experiment():
 
     config = {
-        "sample_fraction": 0.1,
+        "sample_fraction": 0.001,
         "shuffle_data": True,
         "random_state": 42,
         "evaluate_test": False,
@@ -69,19 +69,20 @@ def run_experiment():
         },
 
         "xgboost": {
-            "n_estimators": 500,
-            "max_depth": 6,
+            "n_estimators": 100,
+            "max_depth": 4,
             "learning_rate": 0.05,
             "subsample": 0.8,
-            "colsample_bytree": 0.8,
-            "min_child_weight": 5,
-            "reg_lambda": 1.0,
+            "colsample_bytree": 0.6,
+            "min_child_weight": 20,
+            "reg_lambda": 10.0,
+            "gamma": 0.0,
             "tree_method": "hist",
             "max_bin": 256,
             "eval_metric": "rmse",
             "objective": "reg:squarederror",
             "n_jobs": -1,
-            "random_state": 42,
+            "random_state": 42
         }
     }
 
@@ -115,8 +116,8 @@ def run_experiment():
 
     print(f"\nTamaño efectivo del entrenamiento piloto ({config['sample_fraction'] * 100}%) :")
     print(f"Train:      {int(len(train_df) * config["sample_fraction"]):,}")
-    print(f"Validation: {int(len(val_df)):,} (completo)")
-    print(f"Test:       {int(len(test_df)):,} (completo)")
+    print(f"Validation: {int(len(val_df) * config["sample_fraction"]):,} (completo)")
+    print(f"Test:       {int(len(test_df) * config["sample_fraction"]):,} (completo)")
 
     if config["generate_basic_graphs"]:
         print("\nGenerando gráficos iniciales...")
@@ -303,6 +304,6 @@ def run_experiment():
         "preprocessors": fitted_preprocessors
     }
 
-    # save_experiment(experiment_data)
+    save_experiment(experiment_data)
 
     print("\nExperimento terminado.")
