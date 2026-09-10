@@ -3,11 +3,12 @@
 **Autor:** Mauricio Olguín Sánchez
 **Matrícula:** A01711522
 
-## Alcance actual
+## Modelos implementados
 
-Implementación manual de un modelo de regresión lineal entrenado con Descenso de Gradiente por Mini-Batch, para predecir el retraso en la salida de vuelos (`DepDelay`) a partir de variables de horarios y distancia.
+El proyecto implementa dos modelos de regresión para predecir el retraso en la salida de vuelos (`DepDelay`) a partir de variables relacionadas con los horarios y la distancia:
 
-> En esta primera entrega, aún no se ha implementado el modelo con el uso de Frameworks.
+- **Modelo manual:** regresión lineal implementada desde cero. Aprende los pesos y el sesgo minimizando el error cuadrático medio (MSE) mediante descenso de gradiente por mini-batches.
+- **Modelo XGBoost:** modelo de ensamble basado en árboles de decisión construidos secuencialmente mediante boosting. Captura relaciones no lineales e interacciones entre las variables, y se entrena con `XGBRegressor` usando el algoritmo histograma para acelerar el procesamiento de un dataset grande.
 
 ## Reporte
 
