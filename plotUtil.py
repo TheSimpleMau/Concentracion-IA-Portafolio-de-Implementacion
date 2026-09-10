@@ -98,7 +98,6 @@ def mean_delay_by_hour(df: pd.DataFrame):
 
 
 def _temporal_values(df: pd.DataFrame, column: str, period: int):
-    """Recupera la categoría temporal desde su par seno/coseno si hace falta."""
     if column in df.columns:
         return df[column]
 
@@ -119,13 +118,6 @@ def pair_plot(df:pd.DataFrame):
     sns.pairplot(df, hue="DayOfWeek").savefig("./graficas/pair_plot.png", dpi=DPI)
 
 def predicted_vs_actual(y_real, y_pred, r2, dataset_name="Test", max_points=5000):
-    """
-    Predicción vs realidad.
-
-    Si hay demasiadas observaciones se utiliza sampling
-    para evitar intentar dibujar millones de puntos.
-    """
-
     ensure_graphics_directory()
 
     y_real = np.asarray(y_real)
@@ -225,10 +217,6 @@ def rf_cost_evolution(train_mse: list,validation_mse: list,estimators: list):
 
 
 def xgb_cost_evolution(train_rmse: list, val_rmse: list):
-    """
-    Grafica la evolución del RMSE de train y validation por cada árbol
-    (boosting round) que XGBoost va agregando al modelo.
-    """
     plt.figure(figsize=(10, 6))
     iterations = range(1, len(train_rmse) + 1)
     plt.plot(iterations, train_rmse, label="Training RMSE")
@@ -245,9 +233,6 @@ def xgb_cost_evolution(train_rmse: list, val_rmse: list):
 
 
 def residual_plot(y_real, y_pred, dataset_name="Test", max_points=5000):
-    """
-    Muestra el error (predicción - realidad) según el retraso real.
-    """
     ensure_graphics_directory()
 
     y_real = np.asarray(y_real)
@@ -334,16 +319,6 @@ def binned_prediction_plot(
     n_bins=20,
     dataset_name="Test"
 ):
-    """
-    Agrupa las predicciones en cuantiles y compara:
-
-        promedio predicho
-        vs
-        promedio real
-
-    Permite comparar varios modelos en una misma gráfica.
-    """
-
     ensure_graphics_directory()
 
     y_real = np.asarray(y_real)
@@ -438,22 +413,6 @@ def compare_models_bar(
     metric,
     title=None
 ):
-    """
-    Compara modelos mediante una gráfica de barras.
-
-    results:
-        {
-            "Random Forest": metrics,
-            "XGBoost": metrics
-        }
-
-    metric:
-        "test_mae"
-        "test_rmse"
-        "test_r2"
-        etc.
-    """
-
     ensure_graphics_directory()
 
     model_names = list(results.keys())
@@ -515,10 +474,6 @@ def plot_training_history(
     title,
     filename
 ):
-    """
-    Gráfica genérica de aprendizaje.
-    """
-
     ensure_graphics_directory()
 
     plt.figure(figsize=(10, 6))

@@ -292,7 +292,7 @@ Para tener un primer acercamiento general a los datos realicé un gráfico de pa
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/pair_plot_jupyter.png"}
+	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/pair_plot_jupyter.png}
 	\caption{\textit{Pairplot} utilizado para comparar las variables. Para reducir el tiempo de cómputo se graficó un millón de observaciones y cada punto se identificó según el día de la semana.}
 	\label{fig:pairplot}
 \end{figure}
@@ -304,17 +304,17 @@ Después de observar el panorama general, realicé gráficas más específicas. 
 \begin{figure}[H]
 	\centering
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_hour.png"}
+		\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/mean_depdelay_by_hour.png}
 		\caption{Promedios de retrasos por cada hora.}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_weekly.png"}
+		\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/mean_depdelay_by_weekly.png}
 		\caption{Promedios de retrasos por cada día de la semana.}
 	\end{subfigure}
 	\hfill
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_month.png"}
+		\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/mean_depdelay_by_month.png}
 		\caption{Promedios de retrasos por cada mes.}
 	\end{subfigure}
 	\caption{Promedios de retraso según distintos periodos de tiempo.}
@@ -333,7 +333,7 @@ Estos promedios pueden verse afectados por los valores atípicos. Para observar 
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/depdelay_histogram.png"}
+	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/depdelay_histogram.png}
 	\caption{Histograma de los retrasos. La escala se recortó de $-25$ a $150$ minutos porque los pocos valores atípicos reducen la visibilidad de la mayoría de los datos.}
 	\label{fig:hist-depdelay}
 \end{figure}
@@ -344,7 +344,7 @@ Por último, utilicé la matriz de correlación de la figura~\ref{fig:correlatio
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/correlation_matrix.png"}
+	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/correlation_matrix.png}
 	\caption{Matriz de correlación.} 
 	\label{fig:correlation-matrix}
 \end{figure}
@@ -469,7 +469,7 @@ La semilla 42 permite que los pesos iniciales y el orden de los datos sean igual
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/manual_learning_curve.png}
+	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/manual_learning_curve.png}
 	\caption{Evolución del MSE de entrenamiento y validación del modelo manual durante las 20 épocas.}
 	\label{fig:evo-mse}
 \end{figure}
@@ -505,12 +505,12 @@ Estas gráficas sirven para encontrar errores que no se distinguen fácilmente e
 \begin{figure}[H]
 	\centering
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_manual_test.png}
+		\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/predicted_vs_actual_manual_test.png}
 		\caption{Retraso predicho contra retraso real.}
 	\end{subfigure}
 	\vspace{0.4cm}
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{../graficas/residuals_manual_test.png}
+		\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/residuals_manual_test.png}
 		\caption{Error según el retraso real.}
 	\end{subfigure}
 	\caption{Diagnóstico del modelo manual sobre el conjunto de prueba.}
@@ -641,7 +641,7 @@ En la figura~\ref{fig:xgb-learning-curve} podemos observar cómo disminuye el RM
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/xgb_cost_evolution.png}
+	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/xgb_cost_evolution.png}
 	\caption{Evolución del RMSE durante los 500 árboles de XGBoost. El error de entrenamiento y el de validación continúan bajando.}
 	\label{fig:xgb-learning-curve}
 \end{figure}
@@ -651,12 +651,12 @@ La figura~\ref{fig:xgb-diagnostics} se interpreta de la misma forma que la del m
 \begin{figure}[H]
 	\centering
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_xgboost_test.png}
+		\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/predicted_vs_actual_xgboost_test.png}
 		\caption{Retraso predicho contra retraso real.}
 	\end{subfigure}
 	\vspace{0.4cm}
 	\begin{subfigure}{\linewidth}
-		\includegraphics[width=\linewidth]{../graficas/residuals_xgboost_test.png}
+		\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/residuals_xgboost_test.png}
 		\caption{Error según el retraso real.}
 	\end{subfigure}
 	\caption{Diagnóstico de XGBoost sobre el conjunto de prueba.}
@@ -696,7 +696,7 @@ Por último, en la figura~\ref{fig:binned-test} agrupé los vuelos para comparar
 
 \begin{figure}[H]
 	\centering
-	\includegraphics[width=\linewidth]{../graficas/binned_prediction_test.png}
+	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/binned_prediction_test.png}
 	\caption{Promedios predichos y reales en \textit{test}. XGBoost se acerca más a los valores reales, aunque ninguno de los dos modelos logra representar bien los valores extremos.}
 	\label{fig:binned-test}
 \end{figure}
@@ -709,55 +709,55 @@ Por último, en la figura~\ref{fig:binned-test} agrupé los vuelos para comparar
 \chapter{Figuras ampliadas}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/pair_plot_jupyter.png"}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/pair_plot_jupyter.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_hour.png"}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/mean_depdelay_by_hour.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_weekly.png"}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/mean_depdelay_by_weekly.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_month.png"}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/mean_depdelay_by_month.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/depdelay_histogram.png"}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/depdelay_histogram.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/correlation_matrix.png"}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/correlation_matrix.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{../graficas/manual_learning_curve.png}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/manual_learning_curve.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{../graficas/predicted_vs_actual_manual_test.png}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/predicted_vs_actual_manual_test.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{../graficas/residuals_manual_test.png}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/residuals_manual_test.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{../graficas/xgb_cost_evolution.png}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/xgb_cost_evolution.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{../graficas/predicted_vs_actual_xgboost_test.png}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/predicted_vs_actual_xgboost_test.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{../graficas/residuals_xgboost_test.png}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/residuals_xgboost_test.png}
 \end{center}
 
 \begin{center}
-	\includegraphics[width=\textwidth]{../graficas/binned_prediction_test.png}
+	\includegraphics[width=\textwidth]{../graficas/respaldo_reporte_2026-09-10/binned_prediction_test.png}
 \end{center}
 
 \chapter{Códigos}

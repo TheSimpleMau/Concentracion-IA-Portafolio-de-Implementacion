@@ -6,6 +6,7 @@
 *.toc
 *.arff
 *.png
+graficas/
 __pycache__/
 *.parquet
 resultados/

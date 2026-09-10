@@ -117,8 +117,6 @@ def create_comparison_dataframe(results: dict, split="test"):
 
 
 
-# Diagnóstico validation / test
-
 def _safe_ratio(numerator, denominator):
     if numerator is None or denominator is None or denominator == 0:
         return None
@@ -153,30 +151,25 @@ def create_diagnostic_dataframe(results: dict):
 
         rows.append({
             "Modelo": model_name,
-            # RMSE
             "Train RMSE": train_rmse,
             "Validation RMSE": val_rmse,
             "Test RMSE": test_rmse,
             "Val-Train RMSE %": _percentage_change(train_rmse,val_rmse),
             "Test-Val RMSE %": _percentage_change(val_rmse,test_rmse),
             "Test/Val RMSE": _safe_ratio(test_rmse,val_rmse),
-            # MAE
             "Train MAE": train_mae,
             "Validation MAE": val_mae,
             "Test MAE": test_mae,
             "Val-Train MAE %": _percentage_change(train_mae,val_mae),
             "Test-Val MAE %": _percentage_change(val_mae,test_mae),
-            # R²
             "Train R²": train_r2,
             "Validation R²": val_r2,
             "Test R²": test_r2,
             "Test-Val R²": (test_r2 - val_r2 if test_r2 is not None and val_r2 is not None else None),
-            # Bias
             "Train Bias": train_bias,
             "Validation Bias": val_bias,
             "Test Bias": test_bias,
             "Test-Val Bias": (test_bias - val_bias if test_bias is not None and val_bias is not None else None),
-            # Tolerancias
             "Validation ±5": metrics.get("val_within_5"),
             "Test ±5": metrics.get("test_within_5"),
             "Validation ±10": metrics.get("val_within_10"),

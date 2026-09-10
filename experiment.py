@@ -34,23 +34,19 @@ def initial_graphs(df):
 
 def run_experiment():
 
-    # ========================================================
-    # Configuración
-    # ========================================================
-
     config = {
-        "sample_fraction": 1.0,
+        "sample_fraction": 0.1,
         "shuffle_data": True,
         "random_state": 42,
-        "evaluate_test": True,
+        "evaluate_test": False,
 
-        "run_manual": True,
+        "run_manual": False,
         "run_random_forest": False,
         "run_xgboost": True,
 
-        "generate_basic_graphs": True,
+        "generate_basic_graphs": False,
         "generate_individual_graphs": True,
-        "generate_comparison_graphs": True,
+        "generate_comparison_graphs": False,
 
         "manual": {
             "learning_rate": 0.01,
@@ -97,10 +93,6 @@ def run_experiment():
             "Test sólo puede evaluarse con sample_fraction=1.0."
         )
 
-    # ========================================================
-    # ETL
-    # ========================================================
-
     print("\n" + "=" * 70)
     print("ETL")
     print("=" * 70)
@@ -126,28 +118,16 @@ def run_experiment():
     print(f"Validation: {int(len(val_df)):,} (completo)")
     print(f"Test:       {int(len(test_df)):,} (completo)")
 
-    # ========================================================
-    # Gráficas básicas
-    # ========================================================
-
     if config["generate_basic_graphs"]:
         print("\nGenerando gráficos iniciales...")
         initial_graphs(df)
         print("Gráficos iniciales terminados.")
-
-    # ========================================================
-    # Resultados
-    # ========================================================
 
     model_results = {}
     model_predictions = {}
     model_histories = {}
     trained_models = {}
     fitted_preprocessors = {}
-
-    # ========================================================
-    # Modelo manual
-    # ========================================================
 
     if config["run_manual"]:
 
@@ -188,10 +168,6 @@ def run_experiment():
                                 ylabel="MSE",
                                 title="Evolución del MSE — Modelo Manual",
                                 filename="manual_learning_curve")
-
-    # ========================================================
-    # Random forest
-    # ========================================================
 
     if config["run_random_forest"]:
 
@@ -235,10 +211,6 @@ def run_experiment():
             error_distribution(y_evaluation, rf_predictions[evaluation_split], dataset_name=dataset_name)
             rf_cost_evolution(rf_history["train_mse"], rf_history["val_mse"], rf_history["estimators"])
 
-    # ========================================================
-    # XGBoost
-    # ========================================================
-
     if config["run_xgboost"]:
 
         print("\n" + "=" * 70)
@@ -280,18 +252,10 @@ def run_experiment():
             error_distribution(y_evaluation, xgb_predictions[evaluation_split], dataset_name=dataset_name)
             xgb_cost_evolution(xgb_history["train_rmse"], xgb_history["val_rmse"])
 
-    # ========================================================
-    # Validación
-    # ========================================================
-
     if not model_results:
 
         print("\nNo se ejecutó ningún modelo.")
         return
-
-    # ========================================================
-    # Comparación
-    # ========================================================
 
     comparison = create_comparison_dataframe(
         model_results,
@@ -305,17 +269,9 @@ def run_experiment():
 
     print(comparison.to_string(index=False))
 
-    # ========================================================
-    # Diagnóstico validation / test
-    # ========================================================
-
     diagnostic = create_diagnostic_dataframe(model_results)
 
     print_diagnostic_summary(model_results)
-
-    # ========================================================
-    # Gráficas comparativas
-    # ========================================================
 
     if config["generate_comparison_graphs"]:
 
@@ -337,10 +293,6 @@ def run_experiment():
 
         binned_prediction_plot(predictions_for_plot,y_evaluation,n_bins=20,dataset_name=evaluation_split.title())
 
-    # ========================================================
-    # Guardar resultados
-    # ========================================================
-
     experiment_data = {
         "config": config,
         "metrics": model_results,
@@ -351,6 +303,6 @@ def run_experiment():
         "preprocessors": fitted_preprocessors
     }
 
-    save_experiment(experiment_data)
+    # save_experiment(experiment_data)
 
     print("\nExperimento terminado.")
