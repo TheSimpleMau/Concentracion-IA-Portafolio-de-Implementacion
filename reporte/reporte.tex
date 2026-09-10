@@ -173,8 +173,8 @@
 
         {\color{daphne}
         \fontsize{17}{21}\selectfont
-        Implementación de un modelo de regresión lineal\\
-        mediante Descenso de Gradiente}
+        Predicción de retrasos en vuelos mediante\\
+        regresión lineal y XGBoost}
 
         \vspace{1.2cm}
 
@@ -204,11 +204,11 @@
 
 \section{Sobre la base de datos seleccionada}
 
-Después de haber investigado en páginas como \href{https://archive.ics.uci.edu/}{UC Irvine}, \href{https://kaggle.com/}{Kaggle}, el \href{https://data.worldbank.org/}{World Banck Open Data}, entre otras bases de datos, en la página de \href{https://www.openml.org/}{OpenML} encontré un \textit{dataset} que se me hizo interesante. Tras aplicar varios filtros, encontre la base de datos \href{https://www.openml.org/search?type=data&status=active&id=42728}{Airlines\_DepDelay\_10M}.
+Después de investigar en páginas como \href{https://archive.ics.uci.edu/}{UC Irvine}, \href{https://kaggle.com/}{Kaggle} y \href{https://data.worldbank.org/}{World Bank Open Data}, encontré en \href{https://www.openml.org/}{OpenML} un \textit{dataset} que se me hizo interesante. Tras aplicar varios filtros, seleccioné la base de datos \href{https://www.openml.org/search?type=data&status=active&id=42728}{Airlines\_DepDelay\_10M}.
 \newline
 Esta base de datos está construida a partir de datos provenientes de la Oficina de Estadísticas de Transporte de los Estados Unidos (\textit{Bureau of Transportation Statistics}, BTS), específicamente, de la base de datos \textit{Airline On-Time Performance Data}.
 \newline
-La base de datos seleccionada contiene 10,000,000 de registros y 10 variables, y corresponde a un problema de regresión. A continuación, presnto una breve descripción general del \textit{dataset}:
+La base de datos seleccionada contiene 10,000,000 de registros y 10 variables, y corresponde a un problema de regresión. A continuación, presento una breve descripción general del \textit{dataset}:
 \begin{description}
 	\item[Propósito:] Predecir el tiempo de retraso en la salida de los vuelos, medido en minutos (\textit{Departure Delay}).
 	\item[Fecha de los datos:] Desde 1987 hasta 2013.
@@ -218,27 +218,27 @@ La base de datos seleccionada contiene 10,000,000 de registros y 10 variables, y
     \item[Número de variables:] 10.
 \end{description}
 
-Aunque OpenML proporciona información sobre cada variable, dentro de la fuente original (en el \textit{\href{https://www.transtats.bts.gov/DL_SelectFields.aspx?gnoyr_VQ=FGJ&QO_fu146_anzr=b0-gvzr}{Bureau of Transportation Statistics}}), existe una descripción más detallada sobre los datos:
+Aunque OpenML proporciona información sobre cada variable, la fuente original del \textit{\href{https://www.transtats.bts.gov/DL_SelectFields.aspx?gnoyr_VQ=FGJ&QO_fu146_anzr=b0-gvzr}{Bureau of Transportation Statistics}} ofrece una descripción más detallada de los datos:
 \begin{description}
-    \item[DepDelay - numerico.] Diferencia, en minutos, entre la hora de salida programada y la hora de salida real del vuelo. Los valores negativos indican que el vuelo salió antes de lo programado.
-    \item[Month - numerico.] Mes en el que se realizó el vuelo, con valores del 1 al 12, donde 1 corresponde a enero y 12 a diciembre.
-    \item[DayofMonth - numerico.] Día del mes en el que se realizó el vuelo, con valores del 1 al 31.
-    \item[DayOfWeek - numerico.] Día de la semana en el que se realizó el vuelo, representado mediante valores del 1 al 7.
-    \item[CRSDepTime - numerico.] Hora de salida programada del vuelo según el sistema de reservas computarizado de la aerolínea (CRS), expresada en hora local con formato HHMM.
-    \item[CRSArrTime - numerico.] Hora de llegada programada del vuelo según el sistema de reservas computarizado de la aerolínea (CRS), expresada en hora local con formato HHMM.
-    \item[UniqueCarrier - categorico.] Código único utilizado para identificar a la aerolínea que opera el vuelo.
-    \item[Origin - categorico.] Código del aeropuerto de origen del vuelo.
-    \item[Dest - categorico.] Código del aeropuerto de destino del vuelo.
-    \item[Distance - numerico.] Distancia total del vuelo, expresada en millas.
+    \item[DepDelay - numérico.] Diferencia, en minutos, entre la hora de salida programada y la hora de salida real del vuelo. Los valores negativos indican que el vuelo salió antes de lo programado.
+    \item[Month - numérico.] Mes en el que se realizó el vuelo, con valores del 1 al 12, donde 1 corresponde a enero y 12 a diciembre.
+    \item[DayofMonth - numérico.] Día del mes en el que se realizó el vuelo, con valores del 1 al 31.
+    \item[DayOfWeek - numérico.] Día de la semana en el que se realizó el vuelo, representado mediante valores del 1 al 7.
+    \item[CRSDepTime - numérico.] Hora de salida programada del vuelo según el sistema de reservas computarizado de la aerolínea (CRS), expresada en hora local con formato HHMM.
+    \item[CRSArrTime - numérico.] Hora de llegada programada del vuelo según el sistema de reservas computarizado de la aerolínea (CRS), expresada en hora local con formato HHMM.
+    \item[UniqueCarrier - categórico.] Código único utilizado para identificar a la aerolínea que opera el vuelo.
+    \item[Origin - categórico.] Código del aeropuerto de origen del vuelo.
+    \item[Dest - categórico.] Código del aeropuerto de destino del vuelo.
+    \item[Distance - numérico.] Distancia total del vuelo, expresada en millas.
 \end{description}
 
 \section{Proceso de ETL}
 
 \subsection{\textit{Extraction}}
 
-Como ya lo he mencionado antes, los datos se han obtenido del siguiente link: \url{https://www.openml.org/search?type=data&status=active&id=42728}
+Como mencioné anteriormente, obtuve los datos del siguiente enlace: \url{https://www.openml.org/search?type=data&status=active&id=42728}
 \newline
-Sin embargo, si se quiciera obtener más datos actuales, habría que descargarlos (sea de forma manual o crearndo algún \textit{script}) desde el siguiente link: \url{https://transtats.bts.gov/PREZIP/}. Aquí, se recopilan todos los datos desde 1987 hasta junio de 2026.
+Si se quisieran obtener datos más actuales, habría que descargarlos manualmente o crear un \textit{script} para obtenerlos desde el siguiente enlace: \url{https://transtats.bts.gov/PREZIP/}. En esta página se recopilan datos desde 1987 hasta junio de 2026.
 
 \subsection{\textit{Transforming}}
 
@@ -257,48 +257,49 @@ Las variables \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest} se excluye
 
 \subsubsection{Sobre los atributos \textit{CRSDepTime} y \textit{CRSArrTime}}
 
-Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas programadas de salida y llegada de los vuelos. En el conjunto de datos original, estas se presentan en formato numérico continuo basado en la estructura HHMM (por ejemplo, las 13:20 se representan como 1320).
+Las variables \textit{CRSDepTime} y \textit{CRSArrTime} representan las horas programadas de salida y llegada de los vuelos. En el conjunto de datos original, estas se presentan en formato numérico HHMM (por ejemplo, las 13:20 se representan como 1320).
 \newline
-Sin embargo, esta representación no es adecuada para ser procesada de forma directa por un modelo de regresión lineal. El formato HHMM introduce discontinuidades matemáticas artificiales debido a los cambios de hora. Por ejemplo, los valores 1059 (10:59) y 1100 (11:00) tienen una separación temporal real de apenas 1 minuto; no obstante, si el modelo consume los datos en su formato original, interpretará una distancia matemática de 41 unidades. Esta magnitud falsa distorsiona los gradientes durante el entrenamiento, asumiendo una separación temporal mucho mayor a la real.
+Sin embargo, esta representación no es adecuada para utilizarla directamente en los modelos. El formato HHMM introduce saltos numéricos que no corresponden al tiempo real. Por ejemplo, 1059 (10:59) y 1100 (11:00) están separados por un minuto, pero el modelo podría interpretar una diferencia de 41 unidades. Esto hace que los horarios parezcan más alejados de lo que realmente están.
 \newline
 Antes de la conversión se valida que ambos atributos representen una hora posible: deben ser enteros, contener horas entre 0 y 23 y minutos entre 0 y 59. El valor 2400 se admite como una representación especial de medianoche y se transforma en 0. Si cualquiera de los dos horarios de una observación es inválido, la observación completa se elimina. Esta revisión encontró un único registro con \textit{CRSArrTime}=2096; al no existir evidencia para reconstruir su valor correcto, se eliminó en lugar de imputarlo.
 \newline
 Después de la validación, se separaron las horas y los minutos y se aplicó la siguiente ecuación:
 
 \begin{equation*}
-	\text{Minutos}_{\text{desde la media noche}} = 60 \times \text{Hora} + \text{Minutos}
+	\small
+	\text{Minutos}_{\text{desde la medianoche}} = 60 \times \text{Hora} + \text{Minutos}
 \end{equation*}
 
 Así, 1059 se convierte en 659 y 1100 en 660. La transformación elimina la discontinuidad aritmética propia del formato HHMM y coloca los horarios en el intervalo de 0 a 1439 minutos. No debe interpretarse como la duración de un vuelo: las horas son locales y la diferencia entre salida y llegada también puede atravesar la medianoche o zonas horarias distintas.
 
 \subsubsection{Sobre el formato del archivo de los datos}
 
-Al empezar a realizar una exploración de los datos, cada vez que tenía que ejecutar el programa para realizar algo, tardaba aproximadamente 45 segundos en sólo cargar los datos. Investigando opciones para solucionar este problema, me encontré con el formato \lstinline[style=pythonish]|parquet|. Este formato esta precesiamente optimizado para mejorar el manejo de datos complejos, el rendimiento de las consultas que se hacen y la eficiencia del almacenamiento~\cite{ibmQuApache}.
+Al comenzar la exploración, cada ejecución tardaba aproximadamente 45 segundos solamente en cargar los datos. Buscando una forma de reducir este tiempo, encontré el formato \lstinline[style=pythonish]|parquet|. Este formato está optimizado para trabajar con datos grandes, acelerar su lectura y utilizar mejor el almacenamiento~\cite{ibmQuApache}.
 \newline
-Al informarme que esta integración me resultaería óptima para poder realizar más prubeas más rapidas, la he implementado. Así pues, el archivo ha pasado de tener un peso de 385 MB a sólo 56 MB; además de que el timepo de carga se redujo drásticamente de 45 segundos a 2 segundos o menos en la carga de datos.
+Después de implementarlo, el archivo pasó de 385 MB a 56 MB y el tiempo de carga bajó de 45 segundos a 2 segundos o menos. Esto me permitió realizar nuevas pruebas con mayor rapidez.
 
 \subsection{\textit{Loading}}
 
-Después de eliminar la observación inválida quedaron 9,999,999 registros. El objetivo de esta evaluación es estimar el desempeño sobre vuelos pertenecientes a la misma población histórica, no simular el pronóstico de un periodo futuro. Además, el conjunto disponible no contiene el año ni una fecha completa que permita construir y justificar un corte cronológico. Por estas razones, antes de dividir los datos se aplica una permutación reproducible con semilla 42.
+Después de eliminar la observación inválida quedaron 9,999,999 registros. En este proyecto quiero evaluar vuelos de la misma población histórica y no simular la predicción de un periodo futuro. Además, el \textit{dataset} no contiene el año ni una fecha completa que permita hacer una separación cronológica correcta. Por estas razones, mezclé los datos con la semilla 42 antes de dividirlos.
 \newline
 La división conserva 98\% de los datos para \textit{train}, 1\% para \textit{validation} y 1\% para \textit{test}: 9,799,999, 99,999 y 100,001 observaciones, respectivamente. La diferencia de una observación se debe al redondeo de las proporciones enteras. Los tres conjuntos son disjuntos.~\cite{ml4devsTrainingValidation}
 \newline
 En las pruebas parciales, la fracción de muestreo se aplica solamente a \textit{train}. Los conjuntos de \textit{validation} y \textit{test} permanecen completos para que sus métricas sean estables y comparables entre ejecuciones. \textit{Train} se utiliza para ajustar los parámetros; \textit{validation}, para comparar configuraciones; y \textit{test} queda reservado para una sola evaluación una vez elegido el modelo y congelados sus hiperparámetros.
 
-\section{\textit{Exploratoy Data Analysis}}
+\section{Análisis exploratorio de los datos}
 
-Hice un primer acercamiento general a los datos simplemente realizando un gráfico de pares (\textit{pairplot}), el cuál resultó en el siguiente: (ver figura \ref{fig:pairplot})
+Para tener un primer acercamiento general a los datos realicé un gráfico de pares o \textit{pairplot}, que se muestra en la figura~\ref{fig:pairplot}.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/pair_plot_jupyter.png"}
-	\caption{\textit{Pair plot} para visualizar la mayoría de los datos comparados entre sí. No se graficaron los 10 millones de puntos por el tiempo de computo requerido, sólo se graficaron un millon. Se añadió también que, para cada punto, se etiquetara por su el día de la semana (\textit{DayOfWeek}) para intentar de visualizar algúna zona de interes así como la distribución de los mismos.}
+	\caption{\textit{Pairplot} utilizado para comparar las variables. Para reducir el tiempo de cómputo se graficó un millón de observaciones y cada punto se identificó según el día de la semana.}
 	\label{fig:pairplot}
 \end{figure}
 
-De estos gráficos, se puede observar que, cuando se comparan los datos entre \textit{DepDelay}, se pueden apreciar una posible zona donde la mayoría de los datos recaen, sin embargo, también es interesante ver que existen outliers negativos, es decir, que hubo días en dónde un vuelo se adelantó a la hora de su salida. También, podemos observar que entre las variables de \textit{CRSDepTime} y \textit{CRSArrTime} existe una clara agrupación de los datos, debido a que ambos datos están representando horas específicas.
+En estas gráficas podemos observar una zona en la que se concentra la mayoría de los valores de \textit{DepDelay}. También aparecen valores atípicos negativos, los cuales representan vuelos que salieron antes de la hora programada. Por otro lado, \textit{CRSDepTime} y \textit{CRSArrTime} presentan agrupaciones claras porque ambas variables representan horarios.
 \newline
-Ahora que tenemos el panorama general de los datos, podría pasar a realizar gráficas específicas que me cuenten un poco más sobre los mismos datos. Al contar con los datos de los días de la semana, días del mes, meses del año y las horas en las que se retrasan, decidí hacer un gráfico con los minutos promedio por cada serie de tiempo para ver cómo es que evolucionan los retrasos durante cada periodo de tiempo (ver figura \ref{fig:serie-retrasos})
+Después de observar el panorama general, realicé gráficas más específicas. La figura~\ref{fig:serie-retrasos} muestra el retraso promedio según la hora, el día de la semana y el mes.
 
 \begin{figure}[H]
 	\centering
@@ -316,30 +317,30 @@ Ahora que tenemos el panorama general de los datos, podría pasar a realizar gr�
 		\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_month.png"}
 		\caption{Promedios de retrasos por cada mes.}
 	\end{subfigure}
-	\caption{Promedios de retrasos por periodos de tiempos.}
+	\caption{Promedios de retraso según distintos periodos de tiempo.}
 	\label{fig:serie-retrasos}
 \end{figure}
 
-De cada uno, puedo destacar lo siguiente:
+De estas gráficas, puedo destacar lo siguiente:
 
 \begin{itemize}
-	\item Para los retrasos por cada hora del día se puede apreciar que, si empezamos a ver la gráfica desde las 5 de la mañana (el punto más bajo en promedio de retrasos), por cada hora que pasa va incriementando el retraso en cada vuelo hasta llegar al punto máximo hasta las 7 de la tarde (19 horas).
-	\item Algo similar a lo anterior pasa a lo largo de la semana pues, a medida que se acerca el fin de semana, los vuelos cada día se retrasan más, hasta que el viernes llega a su punto máximo.
-	\item Por último, durante el verano e inicios de años es cuando existen más retrasos en los vuelos. Aunque esta información me hace pensar que coincide  con periodos vacacionales, no puedo afirmar con la información que tengo que esta sea la razón.
+	\item Por hora, el retraso promedio es menor alrededor de las 5 de la mañana. Después aumenta poco a poco hasta alcanzar su punto más alto cerca de las 7 de la tarde.
+	\item Por día de la semana, el retraso promedio aumenta conforme se acerca el fin de semana y alcanza su punto más alto el viernes.
+	\item Por mes, los retrasos aumentan durante el verano y al inicio del año. Esto coincide con periodos vacacionales, aunque con estos datos no puedo afirmar que esa sea la causa.
 \end{itemize}
 
-Sin embargo, es importante destacar que estos valores podrían estar altamente afectados por los \textit{outliers} que existen para cada serie de tiempo. Para confirmar esto, vale entonces la penas realizar el histograma específico con los retrasos (ver figura \ref{fig:hist-depdelay}).
+Estos promedios pueden verse afectados por los valores atípicos. Para observar mejor cómo se distribuyen los retrasos, realicé el histograma de la figura~\ref{fig:hist-depdelay}.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{"../graficas/previo a mi despapaye/depdelay_histogram.png"}
-	\caption{Histograma con retrasos en los vuelos. \textbf{NOTA:} La escala de este histograma se ha recortado de $-25$ a $150$. Esto debido a que los \textit{outliers} (tanto positivos como negativos) son tan grandes y muy pocos que reducen mucho la visibilidad de la gran mayoría de los datos.} 
+	\caption{Histograma de los retrasos. La escala se recortó de $-25$ a $150$ minutos porque los pocos valores atípicos reducen la visibilidad de la mayoría de los datos.}
 	\label{fig:hist-depdelay}
 \end{figure}
 
-Es interesante observar que la inmensa mayoría de vuelos está a tiempo, ya que es en donde más se concentran los datos. Sin embargo, también es interesante ver que existen vuelos que se adelantan.
+La mayoría de los vuelos se concentra cerca de cero minutos de retraso. También existen valores negativos, que corresponden a vuelos que salieron antes de la hora programada.
 \newline
-Por último, el gráfico más interesante en donde podemos comparar y darnos cuenta de la relación lineal entre las variables es una matriz de correlación (ver figura \ref{fig:correlation-matrix})
+Por último, utilicé la matriz de correlación de la figura~\ref{fig:correlation-matrix} para revisar la relación lineal entre las variables.
 
 \begin{figure}[H]
 	\centering
@@ -348,33 +349,35 @@ Por último, el gráfico más interesante en donde podemos comparar y darnos cue
 	\label{fig:correlation-matrix}
 \end{figure}
 
-Como se puede observar en la matriz, existe una correlación lineal débil entre la mayoría de las variables independientes y la variable objetivo \textit{DepDelay}. Las excepciones relativas son \textit{CRSDepTime} y \textit{CRSArrTime}, que presentan los valores positivos más altos (0.12 en ambos), aunque su poder predictivo lineal sigue siendo moderado. Asimismo, se detectó una fuerte multicolinealidad (0.80) entre \textit{CRSDepTime} y \textit{CRSArrTime}; un comportamiento estadísticamente esperado dado que representan ventanas temporales lógicamente secuenciales de un mismo vuelo.
+Como se puede observar, la mayoría de las variables tiene una correlación lineal débil con \textit{DepDelay}. \textit{CRSDepTime} y \textit{CRSArrTime} tienen los valores positivos más altos, de 0.12 en ambos casos, pero la relación sigue siendo pequeña. También existe una correlación de 0.80 entre estas dos variables, algo esperado porque representan los horarios programados de un mismo vuelo.
 
 \subsection{Conclusiones}
 
-A partir de este análisis, podemos determinar que:
+A partir de este análisis, puedo concluir lo siguiente:
 
 \begin{description}
-    \item[Naturaleza de los datos:] La baja correlación generalizada sugiere que la relación que dicta los retrasos no es estrictamente lineal. La baja correlación observada entre las variables predictoras y \textit{DepDelay} sugiere que una parte importante de la variabilidad de los retrasos podría no ser explicada mediante relaciones lineales simples. Por ello, es razonable esperar que el coeficiente de determinación \(R^2\) obtenido por una regresión lineal sea limitado.
-    \item[Multicolinealidad temporal:] La fuerte relación entre las horas de salida y llegada implica que ambas variables aportan información redundante al modelo, lo cual podría generar cierta inestabilidad al momento de que el algoritmo asigne los pesos.
-    \item[Disparidad de magnitudes:] Las variables independientes operan en escalas drásticamente distintas, contrastando vuelos de miles de millas físicas contra el formato temporal de horas y minutos.
+    \item[Naturaleza de los datos:] La baja correlación con \textit{DepDelay} indica que una regresión lineal probablemente explicará sólo una pequeña parte de los retrasos.
+    \item[Multicolinealidad temporal:] La relación entre las horas de salida y llegada muestra que ambas aportan información parecida, lo que puede afectar la forma en la que el modelo asigna sus pesos.
+    \item[Diferencia de escalas:] Las variables utilizan escalas muy distintas. Por ejemplo, la distancia puede contener miles de millas, mientras que las demás variables tienen valores mucho menores.
 \end{description}
 
-Por estas razones, y para resolver específicamente la diferencia de magnitudes, es indispensable proceder con la normalización de los datos. Este paso asegurará que todas las características numéricas convivan en un rango equitativo. Al nivelar la escala, evitamos que las variables con valores más grandes dominen el cálculo de la función de costo, permitiendo que el algoritmo del \textit{Descenso de Gradiente} converja hacia los pesos óptimos de manera mucho más rápida y estable. En la siguiente sección, hablaré un poco más a detalle sobre los algortimos que aplicaré sobre mi modelo y su función dentro del mismo.
+Para resolver la diferencia de escalas, normalicé los datos antes de entrenar el modelo manual. Esto evita que las variables con valores grandes dominen el cálculo del costo y ayuda a que el Descenso de Gradiente encuentre los pesos de una forma más rápida y estable. En la siguiente sección explico cómo realicé esta implementación «a manita».
 
-\section{Modelo de regresión lineal sin frameworks}
+\section{Modelo de regresión lineal sin \textit{framework}}
 
 \subsection{Normalización de los datos}
 
-Para la normalización se utiliza el método \textit{Min-Max}:
-$$X_{norm} = \frac{X - X_{min}}{X_{max} - X_{min}}$$
+Para normalizar los datos utilicé el método \textit{Min-Max}:
+\begin{equation*}
+X_{\text{norm}} = \frac{X - X_{\text{min}}}{X_{\text{max}} - X_{\text{min}}}
+\end{equation*}
 Esta transformación coloca las variables utilizadas durante el ajuste dentro de una escala común y facilita la convergencia del descenso de gradiente.
 \newline
 Los valores mínimo y máximo se calculan únicamente con \textit{train}; posteriormente, esos mismos parámetros se aplican a \textit{validation} y \textit{test}. De esta forma se evita que información de los conjuntos de evaluación intervenga en la preparación del modelo. En la implementación manual se normalizan sus nueve predictores numéricos: \textit{CRSDepTime}, \textit{CRSArrTime}, \textit{Distance} y los seis componentes seno y coseno de las variables de calendario. Si una columna de entrenamiento es constante, se sustituye por cero en los tres conjuntos para evitar una división entre cero.
 
 \subsection{Implementación del modelo}
 
-Una vez preparados y normalizados los datos, se implementó el modelo de regresión lineal a partir de las variables predictoras. Para una observación con $n$ características, la predicción se expresa como:
+Una vez preparados y normalizados los datos, implementé el modelo de regresión lineal a partir de las variables predictoras. Para una observación con $n$ características, la predicción se expresa como:
 
 \begin{equation}
 \hat{y} = b + \sum_{j=1}^{n} w_j x_j
@@ -400,10 +403,10 @@ Tanto la hipótesis como el error son la base del resto de la implementación, y
 
 \subsubsection{Función de costo}
 
-Para medir qué tan alejadas se encuentran las predicciones de los valores reales se utilizó el \textit{Mean Squared Error} (MSE):
+Para medir qué tan alejadas se encuentran las predicciones de los valores reales utilicé el \textit{Mean Squared Error} (MSE):
 
 \begin{equation}
-J(w, b) = \frac{1}{m}\sum_{i=1}^{m}(\hat{y}_i - y_i)^2
+J(w, b) = \frac{1}{m}\sum_{i=1}^{m}\left(\hat{y}_i - y_i\right)^2
 \end{equation}
 
 donde $m$ representa el número de observaciones utilizadas. Elevar los errores al cuadrado evita que los errores positivos y negativos se cancelen entre sí, y penaliza en mayor medida los errores de mayor magnitud. El objetivo del Descenso de Gradiente es encontrar los valores de $w$ y $b$ que minimicen esta función.
@@ -432,17 +435,17 @@ donde $\alpha$ representa la tasa de aprendizaje (\textit{learning rate}). El si
 
 \subsubsection{Entrenamiento por mini-batch}
 
-Debido a que el conjunto completo de entrenamiento contiene aproximadamente 9.8 millones de observaciones, calcular los gradientes utilizando todos los datos antes de cada actualización resultaría costoso. Por ello se utilizó \textit{Mini-Batch Gradient Descent}, dividiendo las observaciones seleccionadas para cada experimento en lotes de 2048. Esto permite actualizar los parámetros varias veces por época y mantiene explícitos los ciclos y listas de la implementación manual.
+Debido a que el conjunto completo de entrenamiento contiene aproximadamente 9.8 millones de observaciones, calcular los gradientes utilizando todos los datos antes de cada actualización resultaría costoso. Por ello utilicé \textit{Mini-Batch Gradient Descent} y dividí las observaciones en lotes de 2048. Esto me permitió actualizar los parámetros varias veces por época y mantener explícitos los ciclos y las listas de la implementación manual.
 \newline
-Durante cada época se recorren todos los lotes, repitiendo para cada uno el ciclo siguiente:
+Durante cada época recorro todos los lotes y repito los siguientes pasos:
 
 \begin{enumerate}
-	\item Se realiza una predicción.
-	\item Se calcula el error.
-	\item Calculamos el costo.
-	\item Calculamos los gradientes.
-	\item Actualizamos $w$ y $b$.
-	\item Al terminar la época, se promedia el costo de entrenamiento entre todos los lotes.
+	\item Realizo una predicción.
+	\item Calculo el error.
+	\item Calculo el costo.
+	\item Calculo los gradientes.
+	\item Actualizo $w$ y $b$.
+	\item Al terminar la época, calculo el costo promedio de todos los lotes.
 \end{enumerate}
 
 \subsubsection{Uso de los conjuntos de entrenamiento, validación y prueba}
@@ -462,7 +465,7 @@ Para la ejecución final del modelo manual utilicé todos los datos de \textit{t
 	\item $random\; state = 42$
 \end{itemize}
 
-La semilla 42 permite que los pesos iniciales y el orden de los datos sean iguales cada vez que se ejecuta el programa. La curva de la figura \ref{fig:evo-mse} muestra cómo cambia el error mientras el modelo aprende. Sin embargo, el valor de \textit{train} que aparece en la curva se calcula mientras se actualizan los pesos, por lo que no es exactamente igual al MSE final. Las métricas de la tabla sí se calcularon al final, cuando el entrenamiento ya había terminado.
+La semilla 42 permite que los pesos iniciales y el orden de los datos sean iguales cada vez que se ejecuta el programa. La curva de la figura~\ref{fig:evo-mse} muestra cómo cambia el error mientras el modelo aprende. Sin embargo, el valor de \textit{train} que aparece en la curva se calcula mientras se actualizan los pesos, por lo que no es exactamente igual al MSE final. Las métricas de la tabla sí se calcularon al final, cuando el entrenamiento ya había terminado.
 
 \begin{figure}[H]
 	\centering
@@ -495,7 +498,7 @@ Podemos observar que el RMSE de \textit{train} es mayor que el de \textit{valida
 \newline
 El error absoluto mediano fue de 9.1324 minutos en \textit{validation} y de 9.1173 en \textit{test}. En ambos conjuntos, aproximadamente 23.7\% de las predicciones quedó dentro de $\pm5$ minutos, 55.3\% dentro de $\pm10$, 79.6\% dentro de $\pm15$ y 92.9\% dentro de $\pm30$. Esto quiere decir que el modelo funciona mejor cuando permitimos un margen amplio. La diferencia entre MAE y RMSE también muestra que existen algunos errores muy grandes.
 \newline
-La figura \ref{fig:manual-diagnostics} contiene dos gráficas sencillas. En la primera, cada punto representa un vuelo: en el eje horizontal aparece su retraso real y en el vertical aparece la predicción. Mientras más cerca se encuentre un punto de la línea punteada, mejor fue la predicción. La segunda gráfica muestra el error de cada vuelo. La línea horizontal representa un error igual a cero; los puntos que están debajo de ella son retrasos que el modelo subestimó.
+La figura~\ref{fig:manual-diagnostics} contiene dos gráficas sencillas. En la primera, cada punto representa un vuelo: en el eje horizontal aparece su retraso real y en el vertical aparece la predicción. Mientras más cerca se encuentre un punto de la línea punteada, mejor fue la predicción. La segunda gráfica muestra el error de cada vuelo. La línea horizontal representa un error igual a cero; los puntos que están debajo de ella son retrasos que el modelo subestimó.
 \newline
 Estas gráficas sirven para encontrar errores que no se distinguen fácilmente en una tabla. En este caso, muestran que la mayoría de las predicciones se concentra en un rango pequeño y que el modelo predice valores mucho menores cuando el retraso real es muy grande.
 
@@ -514,17 +517,19 @@ Estas gráficas sirven para encontrar errores que no se distinguen fácilmente e
 	\label{fig:manual-diagnostics}
 \end{figure}
 
-\subsubsection{Conclusiones finales}
+\subsubsection{Conclusión sobre sesgo, varianza y ajuste}
 
 El modelo tiene un \textbf{sesgo alto}, ya que su $R^2$ se mantiene entre 0.0172 y 0.0191. Esto significa que explica menos de 2\% de los cambios que existen en los retrasos. También tiene una \textbf{varianza baja}, porque los resultados de \textit{train}, \textit{validation} y \textit{test} son muy parecidos. Por estas dos razones, podemos concluir que el modelo tiene \textbf{underfitting}. En otras palabras, el modelo es demasiado sencillo para explicar correctamente el problema. No se observa \textit{overfitting}, pues el desempeño no empeora de forma importante al utilizar datos que no se usaron para entrenarlo.
 \newline
-Es importante no confundir este sesgo con el valor \textit{bias} de la tabla. En la tabla, \textit{bias} es simplemente el promedio de los errores. En \textit{test} fue de $-0.2175$ minutos, por lo que el modelo subestima los retrasos por una cantidad muy pequeña en promedio. Aun así, el sesgo del modelo sigue siendo alto porque su $R^2$ es muy bajo.
+Es importante no confundir este sesgo con el error medio de la tabla. El error medio es simplemente el promedio de la diferencia entre la predicción y el valor real. En \textit{test} fue de $-0.2175$ minutos, por lo que el modelo subestima los retrasos por una cantidad muy pequeña en promedio. Aun así, el sesgo del modelo sigue siendo alto porque su $R^2$ es muy bajo.
+\newline
+Debido a este \textit{underfitting}, en el siguiente capítulo pruebo XGBoost. Este modelo puede encontrar relaciones más complejas y también permite utilizar las variables categóricas que descarté en la implementación manual.
 
 \chapter{Modelo con \textit{framework}: XGBoost}
 
 \section{Modificaciones al ETL}
 
-XGBoost parte del mismo ETL que expliqué en el primer capítulo. Para no repetir esa información, en esta sección sólo explicaré los cambios que se hicieron específicamente para este modelo.
+XGBoost parte del mismo ETL que expliqué en el primer capítulo. Para no repetir esa información, en esta sección sólo explico los cambios que hice específicamente para este modelo.
 \newline
 A diferencia del modelo manual, para XGBoost sí conservé \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest}. Estas variables pueden ayudar al modelo a encontrar diferencias entre aerolíneas, aeropuertos y rutas. Como son variables categóricas, les apliqué \textit{One-Hot Encoding}. Esta transformación solamente se aplicó a esas tres columnas; las variables de calendario conservaron la codificación cíclica explicada anteriormente.
 \newline
@@ -534,7 +539,7 @@ Por último, para XGBoost no utilicé la normalización Min-Max que se aplicó a
 
 \section{Antecedentes publicados}
 
-Antes de seleccionar XGBoost revisé cinco artículos relacionados con la predicción de retrasos. Sus resultados muestran que los modelos basados en árboles pueden funcionar bien en este problema. Sin embargo, cada trabajo utiliza datos y objetivos diferentes, por lo que no sería correcto comparar directamente sus métricas con las mías.
+Antes de seleccionar XGBoost revisé cinco artículos relacionados con la predicción de retrasos. Sus resultados muestran que los modelos basados en árboles pueden funcionar bien para este problema. Sin embargo, cada trabajo utiliza datos y objetivos diferentes, por lo que no sería correcto comparar directamente sus métricas con las mías.
 
 \begin{table*}[t]
 	\centering
@@ -547,18 +552,18 @@ Antes de seleccionar XGBoost revisé cinco artículos relacionados con la predic
 		Rebollo y Balakrishnan~\cite{rebollo2014} & Cerca de 19\% de error de clasificación y 21 min de error mediano a dos horas. & Predice retrasos de rutas y no de vuelos individuales. \\
 		Li y Jing~\cite{li2021} & $R^2=0.90$, MAE de 5.19 y RMSE de 12.42 min; 93.92\% dentro de $\pm15$ min. & Utiliza datos de congestión, capacidad y red. \\
 		Guo et al.~\cite{guo2021} & RFR--MIC funcionó mejor que los modelos comparados. Utilizar varias rutas también mejoró el resultado. & Utiliza información de varias rutas. El resumen no muestra métricas numéricas. \\
-		Manna et al.~\cite{manna2017} & GBDT obtuvo cerca de 92.32\% para llegadas y 94.85\% para salidas. & Es el modelo más parecido a XGBoost, pero su evaluación fue diferente. \\
+		Manna et al.~\cite{manna2017} & GBDT obtuvo un $R^2$ de 92.32\% para llegadas y 94.85\% para salidas. & Es el modelo más parecido a XGBoost, pero su evaluación fue diferente. \\
 		\hline
 	\end{tabular}
 	\caption{Resultados de los cinco antecedentes revisados. Las métricas pertenecen a conjuntos y objetivos diferentes.}
 	\label{tab:literature-results}
 \end{table*}
 
-Estos artículos utilizan información del clima, congestión, capacidad, operaciones o propagación de retrasos. Algunos también eliminan valores extremos o trabajan con un solo aeropuerto. Mi \textit{dataset} contiene principalmente información programada del vuelo. Por esta razón, que sus resultados sean mejores no significa necesariamente que mi algoritmo esté mal; también cuentan con variables que explican mejor por qué ocurre un retraso.
+Estos artículos utilizan información del clima, la congestión, la capacidad de los aeropuertos, las operaciones o la propagación de retrasos. Algunos también eliminan valores extremos o trabajan con un solo aeropuerto. Mi \textit{dataset} contiene principalmente información programada del vuelo. Por esta razón, sus resultados no son directamente comparables con los míos: ellos cuentan con variables que explican mejor por qué ocurre un retraso.
 
 \section{Selección y configuración de XGBoost}
 
-Elegí XGBoost porque va construyendo árboles de forma secuencial. Cada árbol intenta corregir parte de los errores del anterior. Gracias a esto puede encontrar relaciones no lineales entre los horarios, las fechas, la distancia, la aerolínea y la ruta. Esto resulta útil porque en el análisis exploratorio observé que la relación lineal con \textit{DepDelay} era muy débil. Además, Manna et al. obtuvieron buenos resultados utilizando Gradient Boosted Decision Tree~\cite{manna2017}, que pertenece a la misma familia de modelos.
+Elegí XGBoost porque construye árboles de forma secuencial y cada árbol intenta corregir parte de los errores del anterior. Gracias a esto puede encontrar relaciones no lineales entre los horarios, las fechas, la distancia, la aerolínea y la ruta. Esto es útil porque en el análisis exploratorio observé que la relación lineal con \textit{DepDelay} era muy débil. Además, Manna et al. obtuvieron buenos resultados con Gradient Boosted Decision Tree~\cite{manna2017}, que pertenece a la misma familia de modelos.
 
 \subsection{Configuración utilizada}
 
@@ -608,6 +613,8 @@ Para evitar que XGBoost se ajuste demasiado a \textit{train}, utilicé varias fo
 
 \section{Resultados de XGBoost}
 
+Al igual que con el modelo manual, evalué XGBoost con los conjuntos completos de \textit{train}, \textit{validation} y \textit{test}. Las métricas obtenidas fueron las siguientes:
+
 \begin{table}[h!]
 	\centering
 	\small
@@ -630,18 +637,18 @@ Al comparar \textit{validation} con \textit{test}, el RMSE aumenta 2.63\%, el MA
 \newline
 En \textit{test}, 27.53\% de las predicciones quedó dentro de $\pm5$ minutos, 58.50\% dentro de $\pm10$, 78.11\% dentro de $\pm15$ y 92.94\% dentro de $\pm30$. Al igual que en el modelo manual, el porcentaje mejora bastante cuando se permite un margen más amplio.
 \newline
-En la figura \ref{fig:xgb-learning-curve} podemos observar cómo disminuye el RMSE conforme se agregan árboles. Las dos líneas continúan bajando hasta el árbol 500 y no se separan cada vez más. Esto apoya la idea de que el modelo no presenta \textit{overfitting} durante estas rondas.
+En la figura~\ref{fig:xgb-learning-curve} podemos observar cómo disminuye el RMSE conforme se agregan árboles. Las dos líneas continúan bajando hasta el árbol 500 y no se separan cada vez más. Esto apoya la idea de que el modelo no presenta \textit{overfitting} durante estas rondas.
 
-\begin{figure}[h!]
+\begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{../graficas/xgb_cost_evolution.png}
 	\caption{Evolución del RMSE durante los 500 árboles de XGBoost. El error de entrenamiento y el de validación continúan bajando.}
 	\label{fig:xgb-learning-curve}
 \end{figure}
 
-La figura \ref{fig:xgb-diagnostics} se interpreta de la misma forma que la del modelo manual. La primera gráfica permite revisar qué tan cerca se encuentra cada predicción del valor real. La segunda muestra si el modelo se equivoca por arriba o por debajo del retraso real. En XGBoost las predicciones cubren un rango un poco mayor, pero los retrasos extremos todavía se subestiman.
+La figura~\ref{fig:xgb-diagnostics} se interpreta de la misma forma que la del modelo manual. La primera gráfica permite revisar qué tan cerca se encuentra cada predicción del valor real. La segunda muestra si el modelo se equivoca por arriba o por debajo del retraso real. En XGBoost las predicciones cubren un rango un poco mayor, pero los retrasos extremos todavía se subestiman.
 
-\begin{figure}[h!]
+\begin{figure}[H]
 	\centering
 	\begin{subfigure}{\linewidth}
 		\includegraphics[width=\linewidth]{../graficas/predicted_vs_actual_xgboost_test.png}
@@ -660,30 +667,32 @@ La figura \ref{fig:xgb-diagnostics} se interpreta de la misma forma que la del m
 
 XGBoost tiene un \textbf{sesgo alto}, aunque es menor que el del modelo manual. Su $R^2$ en \textit{test} es de 0.0479, por lo que explica aproximadamente 4.8\% de los cambios en los retrasos. También tiene una \textbf{varianza baja}, pues los resultados de \textit{train}, \textit{validation} y \textit{test} son muy parecidos. Por lo tanto, este modelo también tiene \textbf{underfitting}. Aunque funciona mejor que el modelo manual, todavía es demasiado limitado para explicar los retrasos extremos con las variables disponibles. No se observa \textit{overfitting}, ya que su desempeño no empeora de forma importante en \textit{validation} o \textit{test}.
 \newline
-El \textit{bias} de la tabla fue de $+0.0567$ minutos en \textit{test}. Esto significa que, en promedio, el modelo casi no sobreestima ni subestima los retrasos. Sin embargo, esto no quiere decir que el sesgo del modelo sea bajo. El $R^2$ continúa siendo pequeño y las gráficas muestran que los retrasos muy grandes normalmente se subestiman.
+El error medio de la tabla fue de $+0.0567$ minutos en \textit{test}. Esto significa que, en promedio, el modelo casi no sobreestima ni subestima los retrasos. Sin embargo, esto no quiere decir que el sesgo del modelo sea bajo. El $R^2$ continúa siendo pequeño y las gráficas muestran que los retrasos muy grandes normalmente se subestiman.
 
 \section{Comparación y veredicto final}
 
 \begin{table*}[h!]
 	\centering
 	\small
+	\resizebox{\textwidth}{!}{%
 	\begin{tabular}{lrrrrrrrrr}
 		\hline
-		Modelo & MAE & RMSE & $R^2$ & Error medio \\
+		Modelo & MAE & RMSE & $R^2$ & MedAE & $\pm5$ & $\pm10$ & $\pm15$ & $\pm30$ & Error medio \\
 		\hline
-		Manual & 14.0481 & 29.1341 & 0.0181 & $-0.2175$ \\
-		XGBoost & 13.7230 & 28.6896 & 0.0479 & 0.0567 \\
+		Manual & 14.0481 & 29.1341 & 0.0181 & 9.1173 & 23.74\% & 55.41\% & 79.69\% & 92.93\% & $-0.2175$ \\
+		XGBoost & 13.7230 & 28.6896 & 0.0479 & 8.5006 & 27.53\% & 58.50\% & 78.11\% & 92.94\% & 0.0567 \\
 		\hline
 	\end{tabular}
+	}
 	\caption{Comparación final de los modelos sobre el conjunto de prueba.}
 	\label{tab:final-comparison}
 \end{table*}
 
-Al comparar ambos modelos, XGBoost disminuye el MAE en 2.31\%, el RMSE en 1.53\% y el error absoluto mediano en 6.76\%. También aumenta $R^2$ de 0.0181 a 0.0479. En los márgenes de $\pm5$ y $\pm10$ minutos, mejora 3.79 y 3.09 puntos porcentuales. El modelo manual obtiene 1.58 puntos más dentro de $\pm15$ minutos, mientras que dentro de $\pm30$ minutos prácticamente empatan. Aunque la diferencia no es muy grande, XGBoost obtiene mejores resultados en la mayoría de las métricas y explica una mayor parte de los retrasos.
+Al comparar ambos modelos, XGBoost disminuye el MAE en 2.31\%, el RMSE en 1.53\% y el error absoluto mediano en 6.76\%. También aumenta $R^2$ de 0.0181 a 0.0479. En los márgenes de $\pm5$ y $\pm10$ minutos, mejora 3.79 y 3.09 puntos porcentuales. El modelo manual obtiene 1.58 puntos más dentro de $\pm15$ minutos, mientras que dentro de $\pm30$ minutos prácticamente empatan. Aunque la diferencia no es muy grande, XGBoost obtiene mejores resultados en la mayoría de las métricas y explica una mayor parte de los retrasos. Por estas razones, seleccioné XGBoost como el modelo final construido con \textit{framework}.
 \newline
 La ejecución completa tardó 5 minutos con 41 segundos en mi computadora. Este tiempo incluye el ETL, la generación de las gráficas, el entrenamiento del modelo manual, el entrenamiento de XGBoost y la evaluación final.
 \newline
-Por último, en la figura \ref{fig:binned-test} agrupé los vuelos para comparar el promedio real con el promedio predicho. Esta gráfica sirve para observar la tendencia general sin mostrar muchos puntos al mismo tiempo. Mientras más cerca se encuentre cada línea de la línea verde, mejor sigue el modelo los retrasos reales.
+Por último, en la figura~\ref{fig:binned-test} agrupé los vuelos para comparar el promedio real con el promedio predicho. Esta gráfica sirve para observar la tendencia general sin mostrar muchos puntos al mismo tiempo. Mientras más cerca se encuentre cada línea de la línea verde, mejor sigue el modelo los retrasos reales.
 
 \begin{figure}[H]
 	\centering
@@ -697,9 +706,63 @@ Por último, en la figura \ref{fig:binned-test} agrupé los vuelos para comparar
 \printbibliography[heading=bibintoc, title={Bibliografía}]
 
 \appendix
+\chapter{Figuras ampliadas}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/pair_plot_jupyter.png"}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_hour.png"}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_weekly.png"}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/mean_depdelay_by_month.png"}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/depdelay_histogram.png"}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{"../graficas/previo a mi despapaye/correlation_matrix.png"}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{../graficas/manual_learning_curve.png}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{../graficas/predicted_vs_actual_manual_test.png}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{../graficas/residuals_manual_test.png}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{../graficas/xgb_cost_evolution.png}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{../graficas/predicted_vs_actual_xgboost_test.png}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{../graficas/residuals_xgboost_test.png}
+\end{center}
+
+\begin{center}
+	\includegraphics[width=\textwidth]{../graficas/binned_prediction_test.png}
+\end{center}
+
 \chapter{Códigos}
 
-El siguiente código sirve únicamente para la generación de los gráficos presentados, aunque no todos fueron utilizados y/o fueron remplazados.
+El siguiente código sirve para generar las gráficas del proyecto, aunque algunas funciones no se utilizaron en la versión final del reporte.
 \lstinputlisting[style=pythonish]{../plotUtil.py}
 
 Proceso de ETL.
