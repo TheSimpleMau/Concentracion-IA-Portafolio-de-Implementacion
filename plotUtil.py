@@ -118,7 +118,7 @@ def pair_plot(df:pd.DataFrame):
     df = df.iloc[::, 0:7]
     sns.pairplot(df, hue="DayOfWeek").savefig("./graficas/pair_plot.png", dpi=DPI)
 
-def predicted_vs_actual(y_real, y_pred, r2, dataset_name="Test", max_points=20000):
+def predicted_vs_actual(y_real, y_pred, r2, dataset_name="Test", max_points=5000):
     """
     Predicción vs realidad.
 
@@ -159,11 +159,13 @@ def predicted_vs_actual(y_real, y_pred, r2, dataset_name="Test", max_points=2000
     )
 
     plt.figure(figsize=(8, 8))
-    plt.hexbin(
+    plt.scatter(
         y_real_plot,
         y_pred_plot,
-        gridsize=60,
-        mincnt=1
+        s=10,
+        alpha=0.25,
+        color="#1f77b4",
+        edgecolors="none"
     )
     plt.plot(
         [min_value, max_value],
@@ -178,7 +180,6 @@ def predicted_vs_actual(y_real, y_pred, r2, dataset_name="Test", max_points=2000
         f"Predicción vs. Real ({dataset_name})\n"
         f"R² = {r2:.4f}"
     )
-    plt.colorbar(label="Número de observaciones")
     plt.legend()
     plt.grid(alpha=0.2)
     plt.tight_layout()
@@ -223,28 +224,15 @@ def rf_cost_evolution(train_mse: list,validation_mse: list,estimators: list):
     plt.close()
 
 
-def xgb_cost_evolution(train_rmse: list, val_rmse: list, best_iteration: int = None):
+def xgb_cost_evolution(train_rmse: list, val_rmse: list):
     """
     Grafica la evolución del RMSE de train y validation por cada árbol
     (boosting round) que XGBoost va agregando al modelo.
-
-    Si se indica best_iteration (la iteración en la que actuó el early
-    stopping), se marca con una línea vertical para visualizar en qué
-    punto se detuvo el entrenamiento antes de empezar a sobreajustar.
     """
     plt.figure(figsize=(10, 6))
     iterations = range(1, len(train_rmse) + 1)
     plt.plot(iterations, train_rmse, label="Training RMSE")
     plt.plot(iterations, val_rmse, label="Validation RMSE")
-
-    if best_iteration is not None:
-        plt.axvline(
-            x=best_iteration + 1,
-            color="red",
-            linestyle="--",
-            alpha=0.6,
-            label=f"Early stopping (árbol {best_iteration + 1})"
-        )
 
     plt.xlabel("Número de árboles (boosting rounds)")
     plt.ylabel("RMSE")
@@ -256,9 +244,9 @@ def xgb_cost_evolution(train_rmse: list, val_rmse: list, best_iteration: int = N
     plt.close()
 
 
-def residual_plot(y_real, y_pred, dataset_name="Test", max_points=20000):
+def residual_plot(y_real, y_pred, dataset_name="Test", max_points=5000):
     """
-    Residuales = predicción - realidad.
+    Muestra el error (predicción - realidad) según el retraso real.
     """
     ensure_graphics_directory()
 
@@ -273,18 +261,20 @@ def residual_plot(y_real, y_pred, dataset_name="Test", max_points=20000):
             size=max_points,
             replace=False
         )
-        y_plot = y_pred[indices]
+        y_plot = y_real[indices]
         residuals_plot = residuals[indices]
     else:
-        y_plot = y_pred
+        y_plot = y_real
         residuals_plot = residuals
 
     plt.figure(figsize=(10, 6))
-    plt.hexbin(
+    plt.scatter(
         y_plot,
         residuals_plot,
-        gridsize=70,
-        mincnt=1
+        s=10,
+        alpha=0.25,
+        color="#1f77b4",
+        edgecolors="none"
     )
     plt.axhline(
         0,
@@ -292,12 +282,11 @@ def residual_plot(y_real, y_pred, dataset_name="Test", max_points=20000):
         linewidth=2,
         label="Error = 0"
     )
-    plt.xlabel("Retraso predicho (minutos)")
-    plt.ylabel("Residual (predicho - real)")
+    plt.xlabel("Retraso real (minutos)")
+    plt.ylabel("Error (predicción - realidad)")
     plt.title(
-        f"Residuales vs. predicción ({dataset_name})"
+        f"Error según el retraso real ({dataset_name})"
     )
-    plt.colorbar(label="Número de observaciones")
     plt.legend()
     plt.grid(alpha=0.2)
     plt.tight_layout()

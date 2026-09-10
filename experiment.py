@@ -86,7 +86,6 @@ def run_experiment():
             "objective": "reg:squarederror",
             "n_jobs": -1,
             "random_state": 42,
-            "early_stopping_rounds": 30,
         }
     }
 
@@ -279,7 +278,7 @@ def run_experiment():
             predicted_vs_actual(y_evaluation, xgb_predictions[evaluation_split], xgb_metrics[f"{evaluation_split}_r2"], dataset_name=dataset_name)
             residual_plot(y_evaluation, xgb_predictions[evaluation_split], dataset_name=dataset_name)
             error_distribution(y_evaluation, xgb_predictions[evaluation_split], dataset_name=dataset_name)
-            xgb_cost_evolution(xgb_history["train_rmse"], xgb_history["val_rmse"], xgb_history["best_iteration"])
+            xgb_cost_evolution(xgb_history["train_rmse"], xgb_history["val_rmse"])
 
     # ========================================================
     # Validación

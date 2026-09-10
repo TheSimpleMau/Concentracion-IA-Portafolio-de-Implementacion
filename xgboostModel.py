@@ -24,7 +24,6 @@ def train_xgboost(X_train, y_train, X_val, y_val, n_estimators=1000, **xgb_kwarg
         "iteration": list(range(1,len(results["validation_0"]["rmse"]) + 1)),
         "train_rmse": results["validation_0"]["rmse"],
         "val_rmse": results["validation_1"]["rmse"],
-        "best_iteration": getattr(model,"best_iteration",None)
     }
 
     return model, history
@@ -40,13 +39,18 @@ def predict(model, X_train, X_val, X_test=None):
     return predictions
 
 
-def run_xgboost(X_train, y_train, X_val, y_val, X_test=None, y_test=None, n_estimators=1000, early_stopping_rounds=30, **xgb_kwargs):
+def run_xgboost(X_train, y_train, X_val, y_val, X_test=None, y_test=None, n_estimators=1000, **xgb_kwargs):
     if (X_test is None) != (y_test is None):
         raise ValueError("X_test y y_test deben proporcionarse juntos.")
 
-    model, history = train_xgboost(X_train, y_train, X_val, y_val,
-                                n_estimators=n_estimators,
-                                early_stopping_rounds=early_stopping_rounds, **xgb_kwargs)
+    model, history = train_xgboost(
+        X_train,
+        y_train,
+        X_val,
+        y_val,
+        n_estimators=n_estimators,
+        **xgb_kwargs,
+    )
 
     predictions = predict(model, X_train, X_val, X_test)
     predictions.update({
