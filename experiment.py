@@ -69,20 +69,20 @@ def run_experiment():
         },
 
         "xgboost": {
-            "n_estimators": 100,
-            "max_depth": 4,
-            "learning_rate": 0.05,
+            "n_estimators": 400,
+            "max_depth": 7,
+            "learning_rate": 0.125,
             "subsample": 0.8,
-            "colsample_bytree": 0.6,
-            "min_child_weight": 20,
-            "reg_lambda": 10.0,
+            "colsample_bytree": 1.0,
+            "min_child_weight": 80,
+            "reg_lambda": 50,
             "gamma": 0.0,
             "tree_method": "hist",
             "max_bin": 256,
             "eval_metric": "rmse",
             "objective": "reg:squarederror",
             "n_jobs": -1,
-            "random_state": 42
+            "random_state": 42,
         }
     }
 
