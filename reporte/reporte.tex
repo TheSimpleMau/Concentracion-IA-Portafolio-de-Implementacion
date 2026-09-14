@@ -21,6 +21,7 @@
 \usepackage{graphicx}
 \usepackage{fancyhdr}
 \usepackage{multicol}
+\usepackage{balance}
 \usepackage{caption}
 \usepackage[export]{adjustbox}
 \usepackage{subcaption}
@@ -198,7 +199,10 @@
 
 \end{titlepage}
 
+\pagenumbering{roman}
 \tableofcontents
+\clearpage
+\pagenumbering{arabic}
 
 \chapter{Realizando la implementación «a manita»}
 
@@ -234,6 +238,10 @@ Aunque OpenML proporciona información sobre cada variable, la fuente original d
 
 \section{Proceso de ETL}
 
+El proceso de ETL evolucionó conforme cambió el alcance del proyecto. La primera versión estaba diseñada únicamente para la regresión manual: excluía \textit{UniqueCarrier}, \textit{Origin} y \textit{Dest}, representaba \textit{Month}, \textit{DayofMonth} y \textit{DayOfWeek} mediante \textit{One-Hot Encoding} y convertía los horarios HHMM directamente a minutos, sin validar antes que las horas y los minutos fueran posibles. También guardaba una representación reducida orientada a ese modelo.
+\newline
+Al incorporar modelos con \textit{framework}, generalicé el ETL para conservar las variables categóricas y realizar la preparación específica dentro de cada modelo. En la versión definitiva, añadí la validación de horarios, la conversión especial de 2400 a medianoche y la codificación cíclica de las variables de calendario. Las métricas finales de los tres modelos se obtuvieron con esta versión, que se describe en las siguientes subsecciones; el ETL inicial sólo explica la evolución del proyecto y algunas de las gráficas exploratorias.
+
 \subsection{\textit{Extraction}}
 
 Como mencioné anteriormente, obtuve los datos del siguiente enlace: \url{https://www.openml.org/search?type=data&status=active&id=42728}
@@ -265,10 +273,11 @@ Antes de la conversión se valida que ambos atributos representen una hora posib
 \newline
 Después de la validación, se separaron las horas y los minutos y se aplicó la siguiente ecuación:
 
+{\small
 \begin{equation*}
-	\small
 	\text{Minutos}_{\text{desde la medianoche}} = 60 \times \text{Hora} + \text{Minutos}
 \end{equation*}
+}
 
 Así, 1059 se convierte en 659 y 1100 en 660. La transformación elimina la discontinuidad aritmética propia del formato HHMM y coloca los horarios en el intervalo de 0 a 1439 minutos. No debe interpretarse como la duración de un vuelo: las horas son locales y la diferencia entre salida y llegada también puede atravesar la medianoche o zonas horarias distintas.
 
@@ -276,7 +285,7 @@ Así, 1059 se convierte en 659 y 1100 en 660. La transformación elimina la disc
 
 Al comenzar la exploración, cada ejecución tardaba aproximadamente 45 segundos solamente en cargar los datos. Buscando una forma de reducir este tiempo, encontré el formato \lstinline[style=pythonish]|parquet|. Este formato está optimizado para trabajar con datos grandes, acelerar su lectura y utilizar mejor el almacenamiento~\cite{ibmQuApache}.
 \newline
-Después de implementarlo, el archivo pasó de 385 MB a 56 MB y el tiempo de carga bajó de 45 segundos a 2 segundos o menos. Esto me permitió realizar nuevas pruebas con mayor rapidez.
+En la primera etapa, la representación reducida orientada al modelo manual pasó de aproximadamente 385 MiB a 56 MiB y su tiempo de carga bajó de 45 segundos a 2 segundos o menos. Más adelante, el Parquet definitivo aumentó a aproximadamente 119.5 MiB porque conserva las variables categóricas y las transformaciones que requieren los demás modelos. Aun así, sigue siendo considerablemente menor que el archivo ARFF original. El tiempo anterior corresponde únicamente a la versión inicial; no realicé una nueva medición formal para el archivo definitivo.
 
 \subsection{\textit{Loading}}
 
@@ -284,11 +293,11 @@ Después de eliminar la observación inválida quedaron 9,999,999 registros. En 
 \newline
 La división conserva 98\% de los datos para \textit{train}, 1\% para \textit{validation} y 1\% para \textit{test}: 9,799,999, 99,999 y 100,001 observaciones, respectivamente. La diferencia de una observación se debe al redondeo de las proporciones enteras. Los tres conjuntos son disjuntos.~\cite{ml4devsTrainingValidation}
 \newline
-En las pruebas parciales, la fracción de muestreo se aplica solamente a \textit{train}. Los conjuntos de \textit{validation} y \textit{test} permanecen completos para que sus métricas sean estables y comparables entre ejecuciones. \textit{Train} se utiliza para ajustar los parámetros; \textit{validation}, para comparar configuraciones; y \textit{test} queda reservado para una sola evaluación una vez elegido el modelo y congelados sus hiperparámetros.
+En las pruebas parciales, la fracción de muestreo se aplica solamente a \textit{train}. Los conjuntos de \textit{validation} y \textit{test} permanecen completos para que sus métricas sean estables y comparables entre ejecuciones. \textit{Train} se utiliza para ajustar los parámetros; \textit{validation}, para comparar configuraciones; y \textit{test} no interviene en la selección de hiperparámetros y se utiliza después de congelar las configuraciones.
 
 \section{Análisis exploratorio de los datos}
 
-Para tener un primer acercamiento general a los datos realicé un gráfico de pares o \textit{pairplot}, que se muestra en la figura~\ref{fig:pairplot}.
+Para tener un primer acercamiento general a los datos realicé un gráfico de pares o \textit{pairplot}, que se muestra en la figura~\ref{fig:pairplot}. Las gráficas de esta sección se generaron durante la exploración inicial, antes de terminar el ETL definitivo, por lo que muestran las variables de calendario originales en lugar de su codificación cíclica.
 
 \begin{figure}[H]
 	\centering
@@ -324,9 +333,9 @@ Después de observar el panorama general, realicé gráficas más específicas. 
 De estas gráficas, puedo destacar lo siguiente:
 
 \begin{itemize}
-	\item Por hora, el retraso promedio es menor alrededor de las 5 de la mañana. Después aumenta poco a poco hasta alcanzar su punto más alto cerca de las 7 de la tarde.
-	\item Por día de la semana, el retraso promedio aumenta conforme se acerca el fin de semana y alcanza su punto más alto el viernes.
-	\item Por mes, los retrasos aumentan durante el verano y al inicio del año. Esto coincide con periodos vacacionales, aunque con estos datos no puedo afirmar que esa sea la causa.
+	\item Por hora, el retraso promedio es menor alrededor de las 5 de la mañana y después aumenta hasta alcanzar sus valores más altos entre las 7 y las 8 de la tarde. La categoría 24 pertenece al ETL inicial, que convertía 2400 en 1440 minutos; en la versión definitiva ese valor se interpreta como medianoche y se convierte en 0.
+	\item Por día de la semana, el retraso promedio disminuye del lunes al martes, aumenta del martes al viernes, alcanza su punto más alto el viernes y desciende el sábado.
+	\item Por mes, los promedios más altos aparecen en junio, julio y diciembre, mientras que el menor se observa en septiembre. Estos periodos pueden coincidir con cambios estacionales o vacacionales, pero con los datos disponibles no puedo afirmar que esa sea la causa.
 \end{itemize}
 
 Estos promedios pueden verse afectados por los valores atípicos. Para observar mejor cómo se distribuyen los retrasos, realicé el histograma de la figura~\ref{fig:hist-depdelay}.
@@ -334,18 +343,18 @@ Estos promedios pueden verse afectados por los valores atípicos. Para observar 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/depdelay_histogram.png}
-	\caption{Histograma de los retrasos. La escala se recortó de $-25$ a $150$ minutos porque los pocos valores atípicos reducen la visibilidad de la mayoría de los datos.}
+	\caption{Histograma de los retrasos. La escala se recortó de $-25$ a $150$ minutos para observar la concentración central; los valores fuera de este intervalo forman una cola extensa y extrema que reduciría su visibilidad.}
 	\label{fig:hist-depdelay}
 \end{figure}
 
 La mayoría de los vuelos se concentra cerca de cero minutos de retraso. También existen valores negativos, que corresponden a vuelos que salieron antes de la hora programada.
 \newline
-Por último, utilicé la matriz de correlación de la figura~\ref{fig:correlation-matrix} para revisar la relación lineal entre las variables.
+Por último, utilicé la matriz de correlación de la figura~\ref{fig:correlation-matrix} para revisar la relación lineal entre las variables. Esta matriz corresponde a la etapa exploratoria y se calculó con las variables de calendario originales, antes de transformarlas en componentes cíclicos.
 
 \begin{figure}[H]
 	\centering
 	\includegraphics[width=\linewidth]{../graficas/respaldo_reporte_2026-09-10/correlation_matrix.png}
-	\caption{Matriz de correlación.} 
+	\caption{Matriz de correlación con las variables originales de la etapa exploratoria.}
 	\label{fig:correlation-matrix}
 \end{figure}
 
@@ -693,17 +702,17 @@ Al comparar ambos modelos, XGBoost disminuye el MAE en 2.31\%, el RMSE en 1.53\%
 \section{Mejora final del modelo XGBoost}
 \label{sec:xgboost-mejorado}
 
-Al analizar estos resultados, aunque XGBoost es mejor que el modelo manual, aún había mejoras que se podían realizar dentro y fuera del modelo, por lo cual, volví a investigar todo lo posible sobre la implementación de XGBoost para intentar mejorar el modelo. La configuración de 500 árboles y profundidad 6 no mostraba \textit{overfitting}; por el contrario, los resultados parecidos entre \textit{train} y \textit{validation}, junto con el $R^2$ bajo, indicaban \textit{underfitting}. Como esta configuración utilizaba varias técnicas de regularización, retiré estas configuraciones para saber si el modelo tenía capacidad para aprender relaciones más complejas al retirar esas restricciones.
+Aunque el XGBoost histórico obtuvo mejores resultados que el modelo manual, sus métricas cercanas entre \textit{train} y \textit{validation}, junto con el $R^2$ bajo, indicaban \textit{underfitting} y no \textit{overfitting}. Como utilizaba varias restricciones de complejidad, primero probé una configuración deliberadamente extrema para comprobar si XGBoost tenía capacidad suficiente para memorizar una muestra al retirar esas restricciones.
 \newline
-Para realizar esta prueba utilicé una fracción pequeña de \textit{train} (0.1.\% de los datos) y configuré deliberadamente un modelo con mucha capacidad: 3,000 árboles, profundidad 12 y menos restricciones sobre la creación de ramas. El resultado fue un RMSE de 1.4211 y un $R^2$ de 0.9972 en \textit{train}, mientras que en \textit{validation} el RMSE aumentó a 31.3369 y el $R^2$ bajó a $-0.1927$. Con esto logré provocar \textit{overfitting}: el modelo prácticamente memorizó la muestra de entrenamiento, pero no pudo generalizar a datos que no había utilizado.
+Para realizar esta prueba utilicé una fracción pequeña de \textit{train} (0.1\% de los datos) y configuré un modelo con mucha capacidad: 3,000 árboles, profundidad 12 y menos restricciones sobre la creación de ramas. El resultado fue un RMSE de 1.4211 y un $R^2$ de 0.9972 en \textit{train}, mientras que en \textit{validation} el RMSE aumentó a 31.3369 y el $R^2$ bajó a $-0.1927$. Con esto logré provocar \textit{overfitting}: el modelo prácticamente memorizó la muestra de entrenamiento, pero no pudo generalizar a datos que no había utilizado.
 \newline
-Esta configuración extrema no fue una candidata para el modelo final. La prueba sirvió para confirmar que XGBoost sí tenía suficiente capacidad y que quitar la regularización sin control solamente trasladaba el problema de \textit{underfitting} al extremo contrario. A partir de ahí reduje gradualmente la complejidad y volví a ajustar la regularización, utilizando \textit{validation} para comparar las configuraciones. Como resultado de este proceso obtuve una referencia de optimización con 400 árboles, profundidad 7 y \textit{learning rate} de 0.125. Esta referencia fue un resultado intermedio de la búsqueda y no sustituyó al XGBoost historico.
+Esta configuración extrema no fue una candidata para el modelo final. La prueba confirmó que XGBoost sí tenía capacidad suficiente y que retirar la regularización sin control solamente trasladaba el problema al extremo contrario. A partir de ahí reduje gradualmente la complejidad y volví a ajustar la regularización, utilizando \textit{validation} para comparar las configuraciones. Como resultado de este proceso obtuve una referencia de optimización con 400 árboles, profundidad 7 y \textit{learning rate} de 0.125. Esta referencia fue un resultado intermedio de la búsqueda y no sustituyó al XGBoost histórico.
 \newline
-Durante toda la selección mantuve \textit{test} separado. Sólo lo utilicé después de congelar la configuración mejorada; las demás ejecuciones sobre este conjunto sirvieron para comprobar el funcionamiento del programa y no para volver a elegir hiperparámetros.
+Durante toda la selección mantuve \textit{test} separado y no lo utilicé para comparar configuraciones ni elegir hiperparámetros. Su evaluación se realizó después de congelar la configuración mejorada.
 
 \subsection{Configuración del modelo mejorado}
 
-Además de ajustar los hiperparámetros, modifiqué la representación de las variables temporales. Conservé los componentes seno y coseno, pero los utilicé para reconstruir el mes, el día del mes y el día de la semana y añadirlos como categorías discretas. También agrupé las horas programadas de salida y llegada en bloques horarios. De esta forma, XGBoost puede separar periodos concretos sin perder la continuidad representada por las variables originales. La codificación \textit{one-hot} se ajustó únicamente con \textit{train}, por lo que ninguna observación de \textit{validation} o \textit{test} influyó en esta preparación. La tabla~\ref{tab:xgb-improvement-configurations} muestra únicamente los hiperparámetros que modifiqué o añadí durante la mejora.
+Además de ajustar los hiperparámetros, modifiqué la representación de las variables temporales. Conservé los componentes seno y coseno, pero los utilicé para reconstruir el mes, el día del mes y el día de la semana y añadirlos como categorías discretas. También agrupé las horas programadas de salida y llegada en bloques horarios. De esta forma, XGBoost puede separar periodos concretos sin perder la continuidad representada por las variables originales. La codificación \textit{one-hot} se ajustó únicamente con \textit{train}, por lo que ninguna observación de \textit{validation} o \textit{test} influyó en esta preparación. Con las categorías temporales, la representación mejorada alcanzó 874 predictores, frente a los 776 del XGBoost histórico. La tabla~\ref{tab:xgb-improvement-configurations} muestra únicamente los hiperparámetros que modifiqué o añadí durante la mejora.
 \newline
 
 \begin{table}[H]
@@ -737,6 +746,7 @@ El cambio principal fue añadir \textit{grow\_policy=lossguide}. Esta política 
 \newline
 También probé otras representaciones y estructuras. El conjunto completo de variables derivadas aumentó la memoria y empeoró el RMSE; el \textit{target encoding} y los armónicos temporales no produjeron una mejora suficiente; y el modelo residual de dos etapas sólo redujo 0.0013 RMSE mientras casi duplicó el tiempo de ejecución. La combinación de 600 árboles y \textit{learning rate=0.08} obtuvo 0.0011 menos RMSE que la configuración elegida, una diferencia prácticamente nula, pero tardó mucho más y tuvo una variación ligeramente mayor entre semillas. Por esta razón seleccioné el modelo de 400 árboles.
 
+\balance
 \subsection{Confirmación de la mejora}
 
 La tabla~\ref{tab:xgb-improvement-validation} resume la confirmación con 50\% de \textit{train} y las semillas de muestreo 42, 123 y 2026. El modelo mejorado ganó en las tres semillas. Su RMSE promedio pasó de 27.8992 a 27.8518, lo que representa una disminución de 0.0474. El MAE y el valor absoluto del error medio también mejoraron. El costo aumentó porque las categorías temporales hicieron más grande la matriz de predictores, pero se mantuvo dentro de un tiempo razonable para este conjunto de datos.
@@ -847,7 +857,7 @@ La tabla~\ref{tab:xgb-first-predictions} muestra diez ejemplos de la misma ejecu
 	\label{tab:xgb-first-predictions}
 \end{table}
 
-Por último, en la figura~\ref{fig:binned-test-final} agrupé los vuelos para comparar el promedio real con el promedio predicho de los tres modelos de la ejecución definitiva. Esta gráfica permite observar la tendencia general sin mostrar todos los puntos al mismo tiempo. El XGBoost mejorado es el que más se acerca a la línea de predicción perfecta en términos globales, aunque los tres modelos se alejan conforme aumentan los retrasos reales.
+Por último, en la figura~\ref{fig:binned-test-final} agrupé los vuelos para comparar el promedio real con el promedio predicho de los tres modelos. Para cada modelo ordené por separado sus predicciones y formé 20 grupos de tamaño parecido; por esta razón, los puntos de las tres curvas no contienen necesariamente los mismos vuelos. Los dos XGBoost cubren un rango de predicciones mayor que el modelo manual, pero los tres se apartan considerablemente de la línea de predicción perfecta en el grupo con mayor retraso estimado.
 
 \begin{figure}[H]
 	\centering
@@ -860,7 +870,31 @@ Por último, en la figura~\ref{fig:binned-test-final} agrupé los vuelos para co
 
 El XGBoost mejorado mantiene un \textbf{sesgo alto}, aunque es menor que el de los dos modelos anteriores. Su $R^2$ en \textit{test} es de 0.0570, por lo que explica aproximadamente 5.7\% de los cambios en los retrasos. También tiene una \textbf{varianza baja}, pues los resultados de \textit{train}, \textit{validation} y \textit{test} se mantienen cercanos. Por lo tanto, el modelo todavía presenta \textbf{underfitting}. No se observa \textit{overfitting} en la configuración final, ya que las curvas de aprendizaje no se separan de forma creciente y el desempeño no empeora fuera de \textit{train}.
 \newline
-El error medio fue de $+0.0450$ minutos en \txextit{test}, por lo que el modelo casi no sobreestima ni subestima los retrasos en promedio. Este valor no significa que su sesgo sea bajo: el $R^2$ continúa siendo pequeño y las gráficas muestran que los retrasos extremos generalmente se subestiman. La principal limitación sigue siendo la información disponible; una mejora más importante requeriría variables operacionales, como clima, congestión, disponibilidad de aeronaves o retrasos previos, que quedaron fuera del alcance de este trabajo.
+El error medio fue de $+0.0450$ minutos en \textit{test}, por lo que el modelo casi no sobreestima ni subestima los retrasos en promedio. Este valor no significa que su sesgo sea bajo: el $R^2$ continúa siendo pequeño y las gráficas muestran que los retrasos extremos generalmente se subestiman.
+
+\section{Discusión final}
+
+\subsection{Por qué los modelos no fueron suficientes}
+
+El XGBoost mejorado obtuvo los mejores resultados generales, pero no fue suficientemente preciso para predecir el retraso de un vuelo individual. En \textit{test} alcanzó un MAE de 13.5822 minutos, un RMSE de 28.5510 minutos y un $R^2$ de 0.0570. Esto significa que sólo explicó cerca de 5.7\% de los cambios observados en los retrasos. Frente al XGBoost histórico, la mejora fue consistente, pero pequeña: el MAE disminuyó 0.1408 minutos y el RMSE 0.1386 minutos.
+\newline
+El error medio de $+0.0450$ minutos tampoco implica que las predicciones individuales sean cercanas a los valores reales. Ese promedio indica que las sobreestimaciones y las subestimaciones casi se compensan entre sí, aunque pueden existir errores grandes en vuelos concretos. De forma similar, que 92.75\% de las predicciones se encuentre dentro de $\pm30$ minutos representa un margen amplio y no contradice el $R^2$ bajo ni la subestimación de los retrasos extremos.
+\newline
+La distribución de la variable objetivo ayuda a explicar esta dificultad. Aproximadamente 9.10\% de los vuelos tiene un retraso absoluto mayor de 30 minutos y ese grupo concentra cerca de 89\% de las desviaciones cuadráticas respecto de la media. Por lo tanto, una fracción relativamente pequeña de observaciones domina gran parte de la variabilidad que los modelos deben explicar. Las variables programadas permiten reconocer tendencias generales, pero contienen poca información sobre los sucesos que originan los retrasos grandes.
+
+\subsection{Posibles mejoras}
+
+Una mejora posterior podría incorporar información operacional, como el clima, la congestión, la capacidad de los aeropuertos, la disponibilidad o rotación de las aeronaves y los retrasos previos. Estas variables describen condiciones que pueden originar o propagar un retraso y que no están presentes en el conjunto utilizado.
+\newline
+También sería conveniente recuperar el año y una fecha completa para ordenar cronológicamente los vuelos. Esto permitiría entrenar con periodos anteriores y evaluar con periodos posteriores, en lugar de limitar el análisis a una división aleatoria de la misma población histórica.
+\newline
+Por último, sería necesario revisar los valores extremos y establecer una política explícita para distinguir observaciones reales de posibles errores de captura. Estos registros no deberían eliminarse automáticamente, pues los retrasos grandes forman parte del fenómeno estudiado.
+
+\subsection{Conclusiones finales}
+
+El trabajo permitió construir y refinar el proceso de ETL, implementar una regresión lineal mediante Descenso de Gradiente, comparar esa implementación con XGBoost y realizar una optimización sistemática del modelo con \textit{framework}. XGBoost capturó relaciones adicionales y mejoró de manera consistente las métricas del modelo manual, mientras que la configuración final obtuvo una ganancia adicional sobre el XGBoost histórico.
+\newline
+Sin embargo, las mejoras no fueron suficientes para resolver el problema predictivo con las variables disponibles. Los tres modelos mantuvieron un sesgo alto y explicaron una proporción pequeña de la variación de los retrasos. En consecuencia, la principal limitación final parece encontrarse en la información de entrada, más que en la capacidad técnica del algoritmo.
 
 \onecolumn
 
@@ -935,17 +969,19 @@ El error medio fue de $+0.0450$ minutos en \txextit{test}, por lo que el modelo 
 
 \chapter{Códigos}
 
-El siguiente código sirve para generar las gráficas del proyecto, aunque algunas funciones no se utilizaron en la versión final del reporte.
-\lstinputlisting[style=pythonish]{../plotUtil.py}
-
-Proceso de ETL.
-\lstinputlisting[style=pythonish]{../etlProcess.py}
+Para consultar todos los códigos utilizados en este reporte, viste: \url{https://github.com/TheSimpleMau/Concentracion-IA-Portafolio-de-Implementacion}.
+Aquí sólo se dejarán los tres principales códigos que implementan los modelos y los ejecutan.
 
 Implementación del modelo de regresión lineal.
 \lstinputlisting[style=pythonish]{../regresionModel.py}
 
-Código principal.
-\lstinputlisting[style=pythonish]{../main.py}
+\newpage
+Modelo XGBoost (base y mejorado).
+\lstinputlisting[style=pythonish]{../xgboostModel.py}
+
+\newpage
+Para gestionar la ejecución de los tres modelos.
+\lstinputlisting[style=pythonish]{../experiment.py}
 
 
 \end{document}
