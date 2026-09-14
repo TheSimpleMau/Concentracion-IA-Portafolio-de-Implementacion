@@ -29,32 +29,6 @@ def train_xgboost(X_train, y_train, X_val, y_val, n_estimators=1000, **xgb_kwarg
     return model, history
 
 
-def train_final_xgboost(X_train, y_train, n_estimators=1000, **xgb_kwargs):
-    params = {
-        "n_estimators": n_estimators,
-        "max_depth": 8,
-        "learning_rate": 0.05,
-        "subsample": 0.8,
-        "colsample_bytree": 0.8,
-        "min_child_weight": 5,
-        "tree_method": "hist",
-        "eval_metric": "rmse",
-        "objective": "reg:squarederror",
-        "n_jobs": -1,
-        "random_state": 42,
-    }
-    params.update(xgb_kwargs)
-
-    model = XGBRegressor(**params)
-    model.fit(
-        X_train,
-        y_train,
-        eval_set=[(X_train, y_train)],
-        verbose=100,
-    )
-    return model
-
-
 def predict(model, X_train, X_val, X_test=None):
     predictions = {
         "train": model.predict(X_train),

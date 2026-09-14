@@ -7,21 +7,21 @@ from pathlib import Path
 import pandas as pd
 
 from etlProcess import extract_data, transform_data, split_data
-from preprocessing import prepare_final_model_data, prepare_model_data
+from preprocessing import prepare_model_data
 from regresionModel import run_regression_model
-from xgboostModel import run_xgboost, train_final_xgboost
+from xgboostModel import run_xgboost
 from evaluation import (
     create_comparison_dataframe,
     create_diagnostic_dataframe,
     evaluate_all_splits,
     print_diagnostic_summary,
-    regression_metrics,
 )
 from experimentStorage import save_experiment
 from plotUtil import (
     binned_prediction_plot,
     compare_models_bar,
     correlation_matrix,
+    delays_hist,
     error_distribution,
     mean_delay_by_hour,
     mean_delay_by_month,
@@ -34,62 +34,64 @@ from plotUtil import (
 
 
 FINAL_COMPARISON_DIRECTORY = Path("resultados/evaluacion_final_xgboost")
+FINAL_REQUIRED_VALUES = {
+    "sample_fraction": 1.0,
+    "shuffle_data": True,
+    "random_state": 42,
+}
+MANUAL_PARAMETERS = {
+    "learning_rate": 0.01,
+    "epochs": 20,
+    "batch_size": 2048,
+    "random_state": 42,
+}
+XGBOOST_BASE_PARAMETERS = {
+    "n_estimators": 500,
+    "max_depth": 6,
+    "learning_rate": 0.05,
+    "subsample": 0.8,
+    "colsample_bytree": 0.8,
+    "min_child_weight": 5,
+    "reg_lambda": 1.0,
+    "tree_method": "hist",
+    "max_bin": 256,
+    "eval_metric": "rmse",
+    "objective": "reg:squarederror",
+    "n_jobs": -1,
+    "random_state": 42,
+}
+XGBOOST_IMPROVED_PARAMETERS = {
+    "n_estimators": 400,
+    "max_depth": 0,
+    "max_leaves": 63,
+    "grow_policy": "lossguide",
+    "learning_rate": 0.125,
+    "subsample": 0.8,
+    "colsample_bytree": 1.0,
+    "min_child_weight": 80,
+    "reg_lambda": 50,
+    "gamma": 0.0,
+    "tree_method": "hist",
+    "max_bin": 256,
+    "eval_metric": "rmse",
+    "objective": "reg:squarederror",
+    "n_jobs": -1,
+    "random_state": 42,
+}
+FINAL_MODEL_PARAMETERS = {
+    "manual": MANUAL_PARAMETERS,
+    "xgboost_base": XGBOOST_BASE_PARAMETERS,
+    "xgboost_improved": XGBOOST_IMPROVED_PARAMETERS,
+}
 
 
 def validate_final_comparison_config(config):
-    expected_values = {
-        "sample_fraction": 1.0,
-        "shuffle_data": True,
-        "random_state": 42,
-    }
-    expected_parameters = {
-        "manual": {
-            "learning_rate": 0.01,
-            "epochs": 20,
-            "batch_size": 2048,
-            "random_state": 42,
-        },
-        "xgboost_base": {
-            "n_estimators": 400,
-            "max_depth": 7,
-            "learning_rate": 0.125,
-            "subsample": 0.8,
-            "colsample_bytree": 1.0,
-            "min_child_weight": 80,
-            "reg_lambda": 50,
-            "gamma": 0.0,
-            "tree_method": "hist",
-            "max_bin": 256,
-            "eval_metric": "rmse",
-            "objective": "reg:squarederror",
-            "n_jobs": -1,
-            "random_state": 42,
-        },
-        "xgboost_improved": {
-            "n_estimators": 400,
-            "max_depth": 0,
-            "max_leaves": 63,
-            "grow_policy": "lossguide",
-            "learning_rate": 0.125,
-            "subsample": 0.8,
-            "colsample_bytree": 1.0,
-            "min_child_weight": 80,
-            "reg_lambda": 50,
-            "gamma": 0.0,
-            "tree_method": "hist",
-            "max_bin": 256,
-            "eval_metric": "rmse",
-            "objective": "reg:squarederror",
-            "n_jobs": -1,
-            "random_state": 42,
-        },
-    }
     errors = []
-    for name, expected in expected_values.items():
+    for name, expected in FINAL_REQUIRED_VALUES.items():
         value = config.get(name)
         if value != expected:
             errors.append(f"{name}={value!r}; esperado {expected!r}.")
-    for model_name, parameters in expected_parameters.items():
+    for model_name, parameters in FINAL_MODEL_PARAMETERS.items():
         for name, expected in parameters.items():
             value = config[model_name].get(name)
             if value != expected:
@@ -130,15 +132,15 @@ def append_final_execution_history(run_id, output_dir, records,
 
 
 def initial_graphs(df):
+    delays_hist(df)
     mean_delay_by_hour(df)
     mean_delay_by_month(df)
     mean_delay_by_week(df)
     correlation_matrix(df)
 
 
-def run_manual_validation(train_df, val_df, test_df, config, model_results,
-                          model_predictions, model_histories, trained_models):
-    X_train, y_train, X_val, y_val, _, _ = prepare_model_data(
+def run_manual_model(train_df, val_df, test_df, config, evaluate_test=False):
+    X_train, y_train, X_val, y_val, X_test, y_test = prepare_model_data(
         train_df,
         val_df,
         test_df,
@@ -147,11 +149,15 @@ def run_manual_validation(train_df, val_df, test_df, config, model_results,
         normalize=True,
         random_state=config["random_state"],
     )
+    model_X_test = X_test if evaluate_test else None
+    model_y_test = y_test if evaluate_test else None
     model, predictions, history = run_regression_model(
         X_train,
         y_train,
         X_val,
         y_val,
+        model_X_test,
+        model_y_test,
         **config["manual"],
     )
     metrics = evaluate_all_splits(
@@ -159,37 +165,15 @@ def run_manual_validation(train_df, val_df, test_df, config, model_results,
         predictions["train"],
         y_val,
         predictions["val"],
+        model_y_test,
+        predictions.get("test"),
     )
-    trained_models["Manual"] = model
-    model_results["Manual"] = metrics
-    model_predictions["Manual"] = predictions
-    model_histories["Manual"] = history
-
-    if config["generate_individual_graphs"]:
-        predicted_vs_actual(
-            y_val,
-            predictions["val"],
-            metrics["val_r2"],
-            dataset_name="Manual_Validation",
-        )
-        residual_plot(y_val, predictions["val"], dataset_name="Manual_Validation")
-        error_distribution(y_val, predictions["val"], dataset_name="Manual_Validation")
-        plot_training_history(
-            history["epoch"],
-            history["train_mse"],
-            history["val_mse"],
-            xlabel="Época",
-            ylabel="MSE",
-            title="Evolución del MSE — Modelo Manual",
-            filename="manual_learning_curve",
-        )
+    return model, predictions, history, metrics
 
 
-def run_xgboost_validation(train_df, val_df, test_df, config, model_name,
-                           parameters, add_time_categories, model_results,
-                           model_predictions, model_histories, trained_models,
-                           fitted_preprocessors):
-    X_train, y_train, X_val, y_val, _, _, preprocessor = prepare_model_data(
+def run_xgboost_model(train_df, val_df, test_df, config, parameters,
+                      add_time_categories, evaluate_test=False):
+    X_train, y_train, X_val, y_val, X_test, y_test, preprocessor = prepare_model_data(
         train_df,
         val_df,
         test_df,
@@ -200,11 +184,15 @@ def run_xgboost_validation(train_df, val_df, test_df, config, model_name,
         return_preprocessor=True,
         add_time_categories=add_time_categories,
     )
+    model_X_test = X_test if evaluate_test else None
+    model_y_test = y_test if evaluate_test else None
     model, predictions, history = run_xgboost(
         X_train,
         y_train,
         X_val,
         y_val,
+        model_X_test,
+        model_y_test,
         **parameters,
     )
     metrics = evaluate_all_splits(
@@ -212,27 +200,62 @@ def run_xgboost_validation(train_df, val_df, test_df, config, model_name,
         predictions["train"],
         y_val,
         predictions["val"],
+        model_y_test,
+        predictions.get("test"),
     )
-    trained_models[model_name] = model
-    model_results[model_name] = metrics
-    model_predictions[model_name] = predictions
-    model_histories[model_name] = history
-    fitted_preprocessors[model_name] = preprocessor
+    return model, predictions, history, metrics, preprocessor
 
-    if config["generate_individual_graphs"]:
-        label = model_name.replace(" ", "") + "_Validation"
-        predicted_vs_actual(y_val, predictions["val"], metrics["val_r2"], label)
-        residual_plot(y_val, predictions["val"], dataset_name=label)
-        error_distribution(y_val, predictions["val"], dataset_name=label)
-        xgb_cost_evolution(history["train_rmse"], history["val_rmse"])
+
+def generate_individual_graphs(model_name, predictions, history, metrics, split):
+    graph_suffix = "Test_Final" if split == "test" else "Validation"
+    label = model_name.replace(" ", "") + f"_{graph_suffix}"
+    y_evaluation = predictions[f"y_{split}"]
+    predicted_vs_actual(
+        y_evaluation,
+        predictions[split],
+        metrics[f"{split}_r2"],
+        dataset_name=label,
+    )
+    residual_plot(y_evaluation, predictions[split], dataset_name=label)
+    error_distribution(y_evaluation, predictions[split], dataset_name=label)
+
+    if model_name == "Manual":
+        filename = (
+            "manual_learning_curve_test_final"
+            if split == "test" else "manual_learning_curve"
+        )
+        plot_training_history(
+            history["epoch"],
+            history["train_mse"],
+            history["val_mse"],
+            xlabel="Época",
+            ylabel="MSE",
+            title="Evolución del MSE — Modelo Manual",
+            filename=filename,
+        )
+        return
+
+    filename_suffix = "test_final" if split == "test" else "validation"
+    xgb_cost_evolution(
+        history["train_rmse"],
+        history["val_rmse"],
+        title=f"Evolución del RMSE — {model_name}",
+        filename=model_name.lower().replace(" ", "_")
+        + f"_learning_curve_{filename_suffix}",
+    )
 
 
 def final_metrics_record(model_name, metrics, duration_seconds, sample_fraction):
+    test_metrics = {
+        name.removeprefix("test_"): value
+        for name, value in metrics.items()
+        if name.startswith("test_")
+    }
     return {
         "modelo": model_name,
         "sample_fraction": sample_fraction,
         "duration_seconds": duration_seconds,
-        **metrics,
+        **test_metrics,
     }
 
 
@@ -242,15 +265,42 @@ def create_prediction_comparison(y_test, predictions_by_model):
         "valor_real": y_test.to_numpy(),
     })
     for model_name, predictions in predictions_by_model.items():
-        comparison[f"prediccion_{model_name}"] = predictions
+        prediction_key = model_name.lower().replace(" ", "_")
+        comparison[f"prediccion_{prediction_key}"] = predictions
     return comparison.head(10)
 
 
+def generate_comparison_graphs(model_results, model_predictions, split,
+                               dataset_name):
+    title_suffix = "Test final" if split == "test" else "Validation"
+    for metric, title in (
+        ("mae", "Comparación de MAE"),
+        ("rmse", "Comparación de RMSE"),
+        ("r2", "Comparación de R²"),
+        ("within_15", "Predicciones dentro de ±15 minutos"),
+    ):
+        compare_models_bar(
+            model_results,
+            f"{split}_{metric}",
+            f"{title} — {title_suffix}",
+        )
+    predictions_for_plot = {
+        model_name: predictions[split]
+        for model_name, predictions in model_predictions.items()
+    }
+    first_model = next(iter(model_predictions))
+    binned_prediction_plot(
+        predictions_for_plot,
+        model_predictions[first_model][f"y_{split}"],
+        n_bins=20,
+        dataset_name=dataset_name,
+    )
+
+
 def run_final_comparison(train_df, val_df, test_df, config, program_started):
-    train_val_df = pd.concat([train_df, val_df], axis=0)
     records = []
-    final_predictions = {}
-    final_target = None
+    model_results = {}
+    model_predictions = {}
     improved_model = None
     improved_preprocessor = None
 
@@ -259,83 +309,85 @@ def run_final_comparison(train_df, val_df, test_df, config, program_started):
     print("=" * 70)
 
     started = time.perf_counter()
-    X_train, y_train, X_test, y_test = prepare_final_model_data(
-        train_val_df,
+    _, predictions, history, metrics = run_manual_model(
+        train_df,
+        val_df,
         test_df,
-        sample_fraction=config["sample_fraction"],
-        drop_columns=["DepDelay", "UniqueCarrier", "Origin", "Dest"],
-        normalize=True,
-        random_state=config["random_state"],
+        config,
+        evaluate_test=True,
     )
-    manual_model, manual_predictions, _ = run_regression_model(
-        X_train,
-        y_train,
-        X_train,
-        y_train,
-        X_test,
-        y_test,
-        **config["manual"],
-    )
-    final_predictions["manual"] = manual_predictions["test"]
-    final_target = y_test
+    model_results["Manual"] = metrics
+    model_predictions["Manual"] = predictions
     records.append(
         final_metrics_record(
             "Manual",
-            regression_metrics(y_test, manual_predictions["test"]),
+            metrics,
             time.perf_counter() - started,
             config["sample_fraction"],
         )
     )
+    if config["generate_individual_graphs"]:
+        generate_individual_graphs("Manual", predictions, history, metrics, "test")
 
     for model_name, parameters, add_time_categories in (
         ("XGBoost base", config["xgboost_base"], False),
         ("XGBoost mejorado", config["xgboost_improved"], True),
     ):
-        started = time.perf_counter()
-        X_train, y_train, X_test, y_test, preprocessor = prepare_final_model_data(
-            train_val_df,
-            test_df,
-            sample_fraction=config["sample_fraction"],
-            drop_columns=["DepDelay"],
-            encode_categorical=True,
-            random_state=config["random_state"],
-            return_preprocessor=True,
-            add_time_categories=add_time_categories,
-        )
-        if not y_test.equals(final_target):
-            raise ValueError("Los modelos no recibieron el mismo conjunto de test.")
-
         print(
             f"\nEntrenando {model_name}: {parameters['n_estimators']} árboles "
             "(avance cada 100 árboles)."
         )
-        model = train_final_xgboost(X_train, y_train, **parameters)
-        predictions = model.predict(X_test)
-        final_predictions[model_name.lower().replace(" ", "_")] = predictions
+        started = time.perf_counter()
+        model, predictions, history, metrics, preprocessor = run_xgboost_model(
+            train_df,
+            val_df,
+            test_df,
+            config,
+            parameters,
+            add_time_categories,
+            evaluate_test=True,
+        )
+        model_results[model_name] = metrics
+        model_predictions[model_name] = predictions
         records.append(
             final_metrics_record(
                 model_name,
-                regression_metrics(y_test, predictions),
+                metrics,
                 time.perf_counter() - started,
                 config["sample_fraction"],
             )
         )
+        if config["generate_individual_graphs"]:
+            generate_individual_graphs(
+                model_name,
+                predictions,
+                history,
+                metrics,
+                "test",
+            )
         if model_name == "XGBoost mejorado":
             improved_model = model
             improved_preprocessor = preprocessor
 
-    metrics_by_model = {
-        record["modelo"]: {
-            f"test_{name}": value
-            for name, value in record.items()
-            if name not in {"modelo", "sample_fraction", "duration_seconds"}
-        }
-        for record in records
-    }
-    comparison = create_comparison_dataframe(metrics_by_model, split="test")
+    comparison = create_comparison_dataframe(model_results, split="test")
+    if config["generate_comparison_graphs"]:
+        print("\nGenerando gráficas comparativas de test...")
+        generate_comparison_graphs(
+            model_results,
+            model_predictions,
+            "test",
+            "Test_Final_XGBoost",
+        )
     run_id, output_dir = create_final_output_directory()
     comparison.to_csv(output_dir / "comparacion_test.csv", index=False)
-    prediction_comparison = create_prediction_comparison(final_target, final_predictions)
+    final_predictions = {
+        model_name: predictions["test"]
+        for model_name, predictions in model_predictions.items()
+    }
+    prediction_comparison = create_prediction_comparison(
+        test_df["DepDelay"],
+        final_predictions,
+    )
     prediction_comparison.to_csv(
         output_dir / "predicciones_test_primeras_10.csv",
         index=False,
@@ -395,46 +447,9 @@ def run_experiment():
         "generate_basic_graphs": True,
         "generate_individual_graphs": True,
         "generate_comparison_graphs": True,
-        "manual": {
-            "learning_rate": 0.01,
-            "epochs": 20,
-            "batch_size": 2048,
-            "random_state": 42,
-        },
-        "xgboost_base": {
-            "n_estimators": 400,
-            "max_depth": 7,
-            "learning_rate": 0.125,
-            "subsample": 0.8,
-            "colsample_bytree": 1.0,
-            "min_child_weight": 80,
-            "reg_lambda": 50,
-            "gamma": 0.0,
-            "tree_method": "hist",
-            "max_bin": 256,
-            "eval_metric": "rmse",
-            "objective": "reg:squarederror",
-            "n_jobs": -1,
-            "random_state": 42,
-        },
-        "xgboost_improved": {
-            "n_estimators": 400,
-            "max_depth": 0,
-            "max_leaves": 63,
-            "grow_policy": "lossguide",
-            "learning_rate": 0.125,
-            "subsample": 0.8,
-            "colsample_bytree": 1.0,
-            "min_child_weight": 80,
-            "reg_lambda": 50,
-            "gamma": 0.0,
-            "tree_method": "hist",
-            "max_bin": 256,
-            "eval_metric": "rmse",
-            "objective": "reg:squarederror",
-            "n_jobs": -1,
-            "random_state": 42,
-        },
+        "manual": MANUAL_PARAMETERS.copy(),
+        "xgboost_base": XGBOOST_BASE_PARAMETERS.copy(),
+        "xgboost_improved": XGBOOST_IMPROVED_PARAMETERS.copy(),
     }
 
     if config["run_final_comparison"]:
@@ -457,6 +472,11 @@ def run_experiment():
     print(f"Validation: {len(val_df):,}")
     print(f"Test reservado: {len(test_df):,}")
 
+    if config["generate_basic_graphs"]:
+        print("\nGenerando gráficos iniciales...")
+        initial_graphs(df)
+        print("Gráficos iniciales terminados.")
+
     if config["run_final_comparison"]:
         run_final_comparison(train_df, val_df, test_df, config, program_started)
         return
@@ -465,11 +485,6 @@ def run_experiment():
         f"\nTamaño efectivo del entrenamiento ({config['sample_fraction'] * 100}%): "
         f"{int(len(train_df) * config['sample_fraction']):,}"
     )
-    if config["generate_basic_graphs"]:
-        print("\nGenerando gráficos iniciales...")
-        initial_graphs(df)
-        print("Gráficos iniciales terminados.")
-
     model_results = {}
     model_predictions = {}
     model_histories = {}
@@ -480,54 +495,55 @@ def run_experiment():
         print("\n" + "=" * 70)
         print("REGRESIÓN MANUAL")
         print("=" * 70)
-        run_manual_validation(
+        model, predictions, history, metrics = run_manual_model(
             train_df,
             val_df,
             test_df,
             config,
-            model_results,
-            model_predictions,
-            model_histories,
-            trained_models,
         )
+        trained_models["Manual"] = model
+        model_results["Manual"] = metrics
+        model_predictions["Manual"] = predictions
+        model_histories["Manual"] = history
+        if config["generate_individual_graphs"]:
+            generate_individual_graphs(
+                "Manual",
+                predictions,
+                history,
+                metrics,
+                "val",
+            )
 
-    if config["run_xgboost_base"]:
+    for model_name, config_key, run_key, add_time_categories in (
+        ("XGBoost base", "xgboost_base", "run_xgboost_base", False),
+        ("XGBoost mejorado", "xgboost_improved", "run_xgboost_improved", True),
+    ):
+        if not config[run_key]:
+            continue
         print("\n" + "=" * 70)
-        print("XGBOOST BASE")
+        print(model_name.upper())
         print("=" * 70)
-        run_xgboost_validation(
+        model, predictions, history, metrics, preprocessor = run_xgboost_model(
             train_df,
             val_df,
             test_df,
             config,
-            "XGBoost base",
-            config["xgboost_base"],
-            False,
-            model_results,
-            model_predictions,
-            model_histories,
-            trained_models,
-            fitted_preprocessors,
+            config[config_key],
+            add_time_categories,
         )
-
-    if config["run_xgboost_improved"]:
-        print("\n" + "=" * 70)
-        print("XGBOOST MEJORADO")
-        print("=" * 70)
-        run_xgboost_validation(
-            train_df,
-            val_df,
-            test_df,
-            config,
-            "XGBoost mejorado",
-            config["xgboost_improved"],
-            True,
-            model_results,
-            model_predictions,
-            model_histories,
-            trained_models,
-            fitted_preprocessors,
-        )
+        trained_models[model_name] = model
+        model_results[model_name] = metrics
+        model_predictions[model_name] = predictions
+        model_histories[model_name] = history
+        fitted_preprocessors[model_name] = preprocessor
+        if config["generate_individual_graphs"]:
+            generate_individual_graphs(
+                model_name,
+                predictions,
+                history,
+                metrics,
+                "val",
+            )
 
     if not model_results:
         print("\nNo se ejecutó ningún modelo.")
@@ -542,20 +558,11 @@ def run_experiment():
     print_diagnostic_summary(model_results)
 
     if config["generate_comparison_graphs"]:
-        compare_models_bar(model_results, "val_mae", "Comparación de MAE — Validation")
-        compare_models_bar(model_results, "val_rmse", "Comparación de RMSE — Validation")
-        compare_models_bar(model_results, "val_r2", "Comparación de R² — Validation")
-        compare_models_bar(model_results, "val_within_15", "Predicciones dentro de ±15 minutos")
-        predictions_for_plot = {
-            model_name: predictions["val"]
-            for model_name, predictions in model_predictions.items()
-        }
-        first_model = next(iter(model_predictions))
-        binned_prediction_plot(
-            predictions_for_plot,
-            model_predictions[first_model]["y_val"],
-            n_bins=20,
-            dataset_name="Validation",
+        generate_comparison_graphs(
+            model_results,
+            model_predictions,
+            "val",
+            "Validation",
         )
 
     save_experiment(

@@ -216,7 +216,13 @@ def rf_cost_evolution(train_mse: list,validation_mse: list,estimators: list):
     plt.close()
 
 
-def xgb_cost_evolution(train_rmse: list, val_rmse: list):
+def xgb_cost_evolution(train_rmse: list, val_rmse: list,
+                       title=None,
+                       filename="xgb_cost_evolution"):
+    ensure_graphics_directory()
+    if title is None:
+        title = "Evolución del RMSE durante el entrenamiento (XGBoost)"
+
     plt.figure(figsize=(10, 6))
     iterations = range(1, len(train_rmse) + 1)
     plt.plot(iterations, train_rmse, label="Training RMSE")
@@ -224,11 +230,11 @@ def xgb_cost_evolution(train_rmse: list, val_rmse: list):
 
     plt.xlabel("Número de árboles (boosting rounds)")
     plt.ylabel("RMSE")
-    plt.title("Evolución del RMSE durante el entrenamiento (XGBoost)")
+    plt.title(title)
     plt.legend()
     plt.grid(alpha=0.3)
     plt.tight_layout()
-    plt.savefig("./graficas/xgb_cost_evolution.png", dpi=DPI)
+    plt.savefig(f"./graficas/{filename}.png", dpi=DPI)
     plt.close()
 
 
